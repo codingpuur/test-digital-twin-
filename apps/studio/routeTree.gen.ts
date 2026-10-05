@@ -145,6 +145,7 @@ import { Route as ProjectRefBranchesMergeRequestsRouteImport } from './routes/pr
 import { Route as ProjectRefComputeIndexRouteImport } from './routes/project/$ref/compute/index'
 import { Route as ProjectRefComputeNameRouteImport } from './routes/project/$ref/compute/$name'
 import { Route as ProjectRefComputeSecretsRouteImport } from './routes/project/$ref/compute/secrets'
+import { Route as ProjectRefDashboardsIdRouteImport } from './routes/project/$ref/dashboards/$id'
 import { Route as ProjectRefDatabaseColumnPrivilegesRouteImport } from './routes/project/$ref/database/column-privileges'
 import { Route as ProjectRefDatabaseExtensionsRouteImport } from './routes/project/$ref/database/extensions'
 import { Route as ProjectRefDatabaseFunctionsRouteImport } from './routes/project/$ref/database/functions'
@@ -1037,6 +1038,11 @@ const ProjectRefComputeSecretsRoute =
     path: '/secrets',
     getParentRoute: () => ProjectRefComputeRoute,
   } as any)
+const ProjectRefDashboardsIdRoute = ProjectRefDashboardsIdRouteImport.update({
+  id: '/dashboards/$id',
+  path: '/dashboards/$id',
+  getParentRoute: () => ProjectRefRoute,
+} as any)
 const ProjectRefDatabaseColumnPrivilegesRoute =
   ProjectRefDatabaseColumnPrivilegesRouteImport.update({
     id: '/column-privileges',
@@ -2272,6 +2278,7 @@ export interface FileRoutesByFullPath {
   '/project/$ref/branches/merge-requests': typeof ProjectRefBranchesMergeRequestsRoute
   '/project/$ref/compute/$name': typeof ProjectRefComputeNameRoute
   '/project/$ref/compute/secrets': typeof ProjectRefComputeSecretsRoute
+  '/project/$ref/dashboards/$id': typeof ProjectRefDashboardsIdRoute
   '/project/$ref/database/column-privileges': typeof ProjectRefDatabaseColumnPrivilegesRoute
   '/project/$ref/database/extensions': typeof ProjectRefDatabaseExtensionsRoute
   '/project/$ref/database/functions': typeof ProjectRefDatabaseFunctionsRoute
@@ -2585,6 +2592,7 @@ export interface FileRoutesByTo {
   '/project/$ref/branches/merge-requests': typeof ProjectRefBranchesMergeRequestsRoute
   '/project/$ref/compute/$name': typeof ProjectRefComputeNameRoute
   '/project/$ref/compute/secrets': typeof ProjectRefComputeSecretsRoute
+  '/project/$ref/dashboards/$id': typeof ProjectRefDashboardsIdRoute
   '/project/$ref/database/column-privileges': typeof ProjectRefDatabaseColumnPrivilegesRoute
   '/project/$ref/database/extensions': typeof ProjectRefDatabaseExtensionsRoute
   '/project/$ref/database/functions': typeof ProjectRefDatabaseFunctionsRoute
@@ -2908,6 +2916,7 @@ export interface FileRoutesById {
   '/project/$ref/branches/merge-requests': typeof ProjectRefBranchesMergeRequestsRoute
   '/project/$ref/compute/$name': typeof ProjectRefComputeNameRoute
   '/project/$ref/compute/secrets': typeof ProjectRefComputeSecretsRoute
+  '/project/$ref/dashboards/$id': typeof ProjectRefDashboardsIdRoute
   '/project/$ref/database/column-privileges': typeof ProjectRefDatabaseColumnPrivilegesRoute
   '/project/$ref/database/extensions': typeof ProjectRefDatabaseExtensionsRoute
   '/project/$ref/database/functions': typeof ProjectRefDatabaseFunctionsRoute
@@ -3234,6 +3243,7 @@ export interface FileRouteTypes {
     | '/project/$ref/branches/merge-requests'
     | '/project/$ref/compute/$name'
     | '/project/$ref/compute/secrets'
+    | '/project/$ref/dashboards/$id'
     | '/project/$ref/database/column-privileges'
     | '/project/$ref/database/extensions'
     | '/project/$ref/database/functions'
@@ -3547,6 +3557,7 @@ export interface FileRouteTypes {
     | '/project/$ref/branches/merge-requests'
     | '/project/$ref/compute/$name'
     | '/project/$ref/compute/secrets'
+    | '/project/$ref/dashboards/$id'
     | '/project/$ref/database/column-privileges'
     | '/project/$ref/database/extensions'
     | '/project/$ref/database/functions'
@@ -3869,6 +3880,7 @@ export interface FileRouteTypes {
     | '/project/$ref/branches/merge-requests'
     | '/project/$ref/compute/$name'
     | '/project/$ref/compute/secrets'
+    | '/project/$ref/dashboards/$id'
     | '/project/$ref/database/column-privileges'
     | '/project/$ref/database/extensions'
     | '/project/$ref/database/functions'
@@ -5147,6 +5159,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/project/$ref/compute/secrets'
       preLoaderRoute: typeof ProjectRefComputeSecretsRouteImport
       parentRoute: typeof ProjectRefComputeRoute
+    }
+    '/project/$ref/dashboards/$id': {
+      id: '/project/$ref/dashboards/$id'
+      path: '/dashboards/$id'
+      fullPath: '/project/$ref/dashboards/$id'
+      preLoaderRoute: typeof ProjectRefDashboardsIdRouteImport
+      parentRoute: typeof ProjectRefRoute
     }
     '/project/$ref/database/column-privileges': {
       id: '/project/$ref/database/column-privileges'
@@ -7133,6 +7152,7 @@ interface ProjectRefRouteChildren {
   ProjectRefSqlRoute: typeof ProjectRefSqlRouteWithChildren
   ProjectRefStorageRoute: typeof ProjectRefStorageRouteWithChildren
   ProjectRefIndexRoute: typeof ProjectRefIndexRoute
+  ProjectRefDashboardsIdRoute: typeof ProjectRefDashboardsIdRoute
   ProjectRefApiIndexRoute: typeof ProjectRefApiIndexRoute
 }
 
@@ -7154,6 +7174,7 @@ const ProjectRefRouteChildren: ProjectRefRouteChildren = {
   ProjectRefSqlRoute: ProjectRefSqlRouteWithChildren,
   ProjectRefStorageRoute: ProjectRefStorageRouteWithChildren,
   ProjectRefIndexRoute: ProjectRefIndexRoute,
+  ProjectRefDashboardsIdRoute: ProjectRefDashboardsIdRoute,
   ProjectRefApiIndexRoute: ProjectRefApiIndexRoute,
 }
 

@@ -1,8 +1,9 @@
-import { BarChart3, Boxes, FileUp, LayoutDashboard } from 'lucide-react'
+import { Boxes, FileUp } from 'lucide-react'
 import { useRef } from 'react'
 import { Button, Checkbox } from 'ui'
 import { EmptyStatePresentational } from 'ui-patterns/EmptyStatePresentational'
 
+import { DashboardsPanel } from './dashboards/DashboardsPanel'
 import { TWIN_MODULES, type TwinElement } from './twin.types'
 
 type ModulePanelProps = {
@@ -42,21 +43,10 @@ export const ModulePanel = ({
     <div className="flex h-full flex-col bg-dash-sidebar">
       <div className="flex items-center justify-between border-b px-4 py-3">
         <h2 className="text-sm uppercase tracking-wide">{label}</h2>
-        {moduleId === 'dashboards' && (
-          <Button variant="text" disabled icon={<LayoutDashboard size={14} />}>
-            Create Dashboard
-          </Button>
-        )}
       </div>
 
       <div className="flex-1 overflow-y-auto p-4">
-        {moduleId === 'dashboards' && (
-          <EmptyStatePresentational
-            icon={BarChart3}
-            title="No dashboards created yet"
-            description="Dashboards show live values from your streams once the twin is published."
-          />
-        )}
+        {moduleId === 'dashboards' && <DashboardsPanel />}
 
         {moduleId === 'files' && (
           <div className="flex flex-col gap-y-4">
