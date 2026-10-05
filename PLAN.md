@@ -69,6 +69,16 @@ Facilities list → New Facility wizard → Model Upload & Viewer → Classifica
 - Upload UX: drag-drop, progress bar, validation (size/format), model units + origin/orientation setting, versioning (v1, v2), replace model with re-mapping preserved by element ID/name.
 - Large model: Draco/meshopt GLB support, lazy load, element picking via raycast, hide/isolate/section.
 
+## 4b. Autodesk Tandem — operations reference (researched via search snippets; official help pages blocked in this env, verify with screenshots)
+- **Account → Portfolio → Facility.** Portfolio = saari facilities ki list; "Create Facility" (name, location, template, thumbnail).
+- **Manage tab (account level):** Classifications (preloaded MasterFormat/UniFormat/Uniclass/simple, ya custom upload), Parameters (user-defined), **Facility Templates** (classification + parameters per asset type), Team Management, Usage.
+- **Facility ops:** add/replace **models** (Revit etc.), views (Rooms/Levels/Spaces), asset tagging with classification code, **filters panel**, isolate, **systems tracing** (connected network), documents (O&M, warranty, 360 views), groups.
+- **Assets:** object (asset/space/system) + classification code + parameters; asset ko stream se link.
+- **Streams & Connections (Tandem Connect):** Connection = IoT source; Stream = time-series of a device; device payload fields → Tandem parameters mapping; offline interval; numeric + discrete values; stream shown as tagged asset.
+- **Dashboards / Insights:** charts on asset parameters, time-series, room/asset filters.
+- **Access levels:** Primary Admin, Manage (create/delete facility, upload content, invite), Edit (modify, no upload), Read (view). Users account/team level (sab facilities) ya single-facility (vendors).
+- **Apply to our app:** same hierarchy — Account/Portfolio → Facility → Model → Classification → Parameters → Streams → Docs → Users.
+
 ## 5. Information architecture (Pumping Station)
 Left icon-rail + collapsible sidebar (Supabase jaisa), top bar: station switcher, time-range, ⌘K, alarm bell.
 
