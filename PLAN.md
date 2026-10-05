@@ -62,6 +62,13 @@ Note: Studio ka code (`apps/studio`) monorepo-heavy hai (internal packages). Poo
 ### Screens for Part A
 Facilities list → New Facility wizard → Model Upload & Viewer → Classification tree → Mapping table (model element ↔ asset type) → Parameter schema editor → Linking (tags / docs / people) → Ontology graph editor → Publish checklist.
 
+### Model upload (decision: user uploads own model)
+- No sample model dependency; empty state = "Upload 3D model" drop-zone. Dev ke liye ek chhota built-in demo pump-house sirf testing/"Try demo" button.
+- Formats: **GLB/glTF** (Three.js GLTFLoader) aur **IFC** (`web-ifc` WASM, browser mein parse); DWG/RVT backend conversion chahiye, UI-only mein "coming soon".
+- Parsing 100% browser mein (no backend): file → parse → element tree (id, name, category, properties) → store in **IndexedDB** (large files localStorage mein nahi).
+- Upload UX: drag-drop, progress bar, validation (size/format), model units + origin/orientation setting, versioning (v1, v2), replace model with re-mapping preserved by element ID/name.
+- Large model: Draco/meshopt GLB support, lazy load, element picking via raycast, hide/isolate/section.
+
 ## 5. Information architecture (Pumping Station)
 Left icon-rail + collapsible sidebar (Supabase jaisa), top bar: station switcher, time-range, ⌘K, alarm bell.
 
