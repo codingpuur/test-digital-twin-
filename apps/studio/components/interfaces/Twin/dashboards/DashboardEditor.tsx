@@ -2,7 +2,7 @@ import { useParams } from 'common'
 import { ArrowLeft, Plus, Trash2 } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { toast } from 'sonner'
 import {
   Badge,
@@ -15,6 +15,8 @@ import {
 } from 'ui'
 import { EmptyStatePresentational } from 'ui-patterns/EmptyStatePresentational'
 
+import { TimelineBar } from '@/components/ui/Timeline/TimelineBar'
+import { useTimeline } from '@/components/ui/Timeline/useTimeline'
 import { AddCardDialog } from './AddCardDialog'
 import { DashboardCardView } from './DashboardCardView'
 import {
@@ -42,13 +44,9 @@ export const DashboardEditor = () => {
   const [rangeId, setRangeId] = useState<DateRangeId>('7d')
   const [layout, setLayout] = useState('2')
   const [isAddingCard, setIsAddingCard] = useState(false)
-  const [now, setNow] = useState(() => Date.now())
-
-  // Live readings: refresh the clock every few seconds.
-  useEffect(() => {
-    const timer = setInterval(() => setNow(Date.now()), 5000)
-    return () => clearInterval(timer)
-  }, [])
+  // Cards show readings at the timeline cursor; Live follows the clock.
+  const timeline = useTimeline()
+  const now = timeline.cursor
 
   const dashboard = draft ?? saved ?? null
   const siteUrl = `/project/${siteRef}?module=dashboards`
@@ -149,6 +147,8 @@ export const DashboardEditor = () => {
           Add a card
         </Button>
       </div>
+
+      <TimelineBar timeline={timeline} />
 
       <div className="flex-1 overflow-y-auto p-4">
         {dashboard.cards.length === 0 && (

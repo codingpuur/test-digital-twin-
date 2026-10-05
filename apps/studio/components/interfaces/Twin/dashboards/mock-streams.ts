@@ -13,6 +13,8 @@ export type MockStream = {
   amplitude: number
   noise: number
   periodHours: number
+  /** Extra reading added during a short recurring event, so warnings show up in history. */
+  spike?: number
 }
 
 export const MOCK_STREAMS: MockStream[] = [
@@ -40,6 +42,7 @@ export const MOCK_STREAMS: MockStream[] = [
     amplitude: 1.1,
     noise: 0.15,
     periodHours: 12,
+    spike: 3.5,
   },
   {
     id: 'level',
@@ -53,6 +56,7 @@ export const MOCK_STREAMS: MockStream[] = [
     amplitude: 28,
     noise: 2,
     periodHours: 6,
+    spike: 30,
   },
   {
     id: 'power',
@@ -78,6 +82,7 @@ export const MOCK_STREAMS: MockStream[] = [
     amplitude: 0.8,
     noise: 0.35,
     periodHours: 5,
+    spike: 5,
   },
   {
     id: 'temperature',
@@ -91,6 +96,7 @@ export const MOCK_STREAMS: MockStream[] = [
     amplitude: 8,
     noise: 1,
     periodHours: 10,
+    spike: 30,
   },
 ]
 
@@ -108,8 +114,15 @@ const hashString = (value: string) =>
 export const readStream = (stream: MockStream, timestamp: number): number => {
   const hours = timestamp / 3_600_000
   const wave = Math.sin((hours / stream.periodHours) * 2 * Math.PI + hashString(stream.id))
+  // One ~50 minute event every 19 hours.
+  const cycle = hours % 19
+  const spike =
+    stream.spike && cycle > 18.15 ? stream.spike * Math.sin(((cycle - 18.15) / 0.85) * Math.PI) : 0
   const value =
-    stream.base + wave * stream.amplitude + hashNoise(Math.floor(timestamp / 60_000)) * stream.noise
+    stream.base +
+    wave * stream.amplitude +
+    spike +
+    hashNoise(Math.floor(timestamp / 60_000)) * stream.noise
   return Math.min(stream.max, Math.max(stream.min, value))
 }
 

@@ -8,6 +8,18 @@ import type { TwinElement } from './twin.types'
 const SELECTED_EMISSIVE = new THREE.Color('#3ecf8e')
 const NO_EMISSIVE = new THREE.Color('#000000')
 
+const applyColorOverrides = (root: THREE.Object3D, overrides: Record<string, string> | null) => {
+  root.traverse((object) => {
+    const mesh = object as THREE.Mesh
+    const material = mesh.material as THREE.MeshStandardMaterial | undefined
+    if (!mesh.isMesh || !material?.color) return
+    // Remember the model's own colour the first time we touch it.
+    mesh.userData.baseColor ??= material.color.getHex()
+    const override = overrides?.[(mesh.userData.twin as TwinElement | undefined)?.id ?? '']
+    material.color.set(override ?? mesh.userData.baseColor)
+  })
+}
+
 const highlightSelection = (root: THREE.Object3D, selectedId: string | null) => {
   root.traverse((object) => {
     const mesh = object as THREE.Mesh
@@ -23,10 +35,16 @@ const highlightSelection = (root: THREE.Object3D, selectedId: string | null) => 
 type TwinViewerProps = {
   scene: THREE.Object3D
   selectedId: string | null
+  /** Element id to colour, e.g. by status. Elements missing from the map keep their own colour. */
+  colorOverrides?: Record<string, string> | null
   onSelect: (id: string | null) => void
 }
 
-export const TwinViewer = ({ scene, selectedId, onSelect }: TwinViewerProps) => {
+export const TwinViewer = ({ scene, selectedId, colorOverrides = null, onSelect }: TwinViewerProps) => {
+  useEffect(() => {
+    applyColorOverrides(scene, colorOverrides)
+  }, [scene, colorOverrides])
+
   useEffect(() => {
     highlightSelection(scene, selectedId)
   }, [scene, selectedId])

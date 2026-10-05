@@ -7,6 +7,8 @@ export type TwinElement = {
   system: string
   source: string
   guid: string
+  /** Ids of mock streams that report on this element. */
+  streamIds?: string[]
 }
 
 export type TwinModule = {

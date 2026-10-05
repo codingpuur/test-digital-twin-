@@ -193,6 +193,17 @@ const PARTS: PartSpec[] = [
   ...pumpX.flatMap((x, index) => pumpParts(index, x)),
 ]
 
+// Which mock streams report on which demo element.
+const STREAMS_BY_NAME: Record<string, string[]> = {
+  'P-101 Pump': ['vibration'],
+  'M-101 Motor': ['power', 'temperature'],
+  'LT-001 Level sensor': ['level'],
+  'Wet well': ['level'],
+  'Suction header': ['flow'],
+  'Discharge header': ['pressure', 'flow'],
+  'MCC-01 Control panel': ['power'],
+}
+
 const createGeometry = (part: PartSpec) => {
   const [x, y, z] = part.size
   if (part.shape === 'box') return new THREE.BoxGeometry(x, y, z)
@@ -221,6 +232,7 @@ export const buildDemoStation = (): THREE.Group => {
       system: part.system,
       source: 'Demo model',
       guid: `demo-${String(index + 1).padStart(4, '0')}`,
+      streamIds: STREAMS_BY_NAME[part.name],
     }
     group.add(mesh)
   })
