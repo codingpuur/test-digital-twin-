@@ -3,6 +3,7 @@ import type { RefObject } from 'react'
 import { toast } from 'sonner'
 
 import { captureCriticalError } from '@/lib/error-reporting'
+import { IS_MOCK_BACKEND } from '@/lib/mock/config'
 import type { useTrackFunnelError } from '@/lib/telemetry/use-track-funnel-error'
 
 type TrackFunnelError = ReturnType<typeof useTrackFunnelError>
@@ -12,6 +13,8 @@ export async function resolveCaptchaToken(
   trackFunnelError: TrackFunnelError,
   toastId: string | number
 ): Promise<{ ok: true; token: string | null } | { ok: false }> {
+  if (IS_MOCK_BACKEND) return { ok: true, token: null }
+
   try {
     const captchaResponse = await captchaRef.current?.execute({ async: true })
     return { ok: true, token: captchaResponse?.response ?? null }

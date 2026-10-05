@@ -84,7 +84,7 @@ const formSchema = organizationDetailsSchema.extend({
 
 type FormState = z.infer<typeof formSchema>
 
-const stripePromise = loadStripe(STRIPE_PUBLIC_KEY)
+const stripePromise = process.env.NEXT_PUBLIC_MOCK_BACKEND === 'true' ? null : loadStripe(STRIPE_PUBLIC_KEY)
 
 const FORM_ID = 'new-org-form'
 

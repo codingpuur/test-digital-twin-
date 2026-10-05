@@ -2,19 +2,21 @@ import HCaptcha from '@hcaptcha/react-hcaptcha'
 import Head from 'next/head'
 import { useCallback, useEffect, useState } from 'react'
 
+import { NewAccountForm } from '@/components/interfaces/Twin/NewAccountForm'
 import { NewOrgForm } from '@/components/interfaces/Organization/NewOrg/NewOrgForm'
 import { AppLayout } from '@/components/layouts/AppLayout/AppLayout'
 import { DefaultLayout } from '@/components/layouts/DefaultLayout'
 import WizardLayout from '@/components/layouts/WizardLayout'
 import { SetupIntentResponse, useSetupIntent } from '@/data/stripe/setup-intent-mutation'
 import { useCustomContent } from '@/hooks/custom-content/useCustomContent'
+import { IS_MOCK_BACKEND } from '@/lib/mock/config'
 import { buildStudioPageTitle } from '@/lib/page-title'
 import type { NextPageWithLayout } from '@/types'
 
 /**
  * No org selected yet, create a new one
  */
-const Wizard: NextPageWithLayout = () => {
+const PlatformWizard = () => {
   const [intent, setIntent] = useState<SetupIntentResponse>()
   const { appTitle } = useCustomContent(['app:title'])
   const pageTitle = buildStudioPageTitle({
@@ -109,6 +111,8 @@ const Wizard: NextPageWithLayout = () => {
     </>
   )
 }
+
+const Wizard: NextPageWithLayout = () => (IS_MOCK_BACKEND ? <NewAccountForm /> : <PlatformWizard />)
 
 Wizard.getLayout = (page) => (
   <AppLayout>

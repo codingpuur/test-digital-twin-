@@ -25,10 +25,12 @@ import { ProjectUsageSection } from './ProjectUsageSection'
 import { ProjectUsageSectionDeltas } from './ProjectUsageSectionDeltas'
 import { TwinSetupSection } from './TwinSetupSection'
 import { useIsExplorerEnabled } from '@/components/interfaces/App/FeaturePreview/FeaturePreviewContext'
+import { SiteHome } from '@/components/interfaces/Twin/SiteHome'
 import { TopSection } from '@/components/interfaces/ProjectHome/TopSection'
 import { ProjectNeedsSecuring } from '@/components/layouts/ProjectNeedsSecuring/ProjectNeedsSecuring'
 import { ScaffoldContainer, ScaffoldSection } from '@/components/layouts/Scaffold'
 import { SortableSection } from '@/components/ui/SortableSection'
+import { IS_MOCK_BACKEND } from '@/lib/mock/config'
 import { useLocalStorage } from '@/hooks/misc/useLocalStorage'
 import { useSelectedProjectQuery } from '@/hooks/misc/useSelectedProject'
 import { IS_PLATFORM, PROJECT_STATUS } from '@/lib/constants'
@@ -104,6 +106,8 @@ export const ProjectHome = () => {
     if (id === 'usage' || id === 'custom-report') return IS_PLATFORM
     return true
   })
+
+  if (IS_MOCK_BACKEND) return <SiteHome />
 
   return (
     <ProjectNeedsSecuring>

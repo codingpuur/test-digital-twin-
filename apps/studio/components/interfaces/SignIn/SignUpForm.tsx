@@ -15,7 +15,8 @@ import z from 'zod'
 import PasswordConditionsHelper from './PasswordConditionsHelper'
 import { useSignUpMutation } from '@/data/misc/signup-mutation'
 import { BASE_PATH } from '@/lib/constants'
-import { buildSignUpReturnPath } from '@/lib/gotrue'
+import { auth, buildSignUpReturnPath } from '@/lib/gotrue'
+import { IS_MOCK_BACKEND } from '@/lib/mock/config'
 import { classifyApiError, classifyValidationError } from '@/lib/telemetry/funnel-errors'
 import { useTrackFunnelError } from '@/lib/telemetry/use-track-funnel-error'
 
@@ -64,7 +65,21 @@ export const SignUpForm = ({ onSuccess }: { onSuccess?: () => void }) => {
   const trackFunnelError = useTrackFunnelError()
 
   const { mutate: signup, isPending: isSigningUp } = useSignUpMutation({
-    onSuccess: () => {
+    onSuccess: async (_data, variables) => {
+      if (IS_MOCK_BACKEND) {
+        // No email verification in the mock backend: sign in right away and start account setup.
+        const { error } = await auth.signInWithPassword({
+          email: variables.email,
+          password: variables.password,
+        })
+        if (error) {
+          toast.error(`Failed to sign in: ${error.message}`)
+          return
+        }
+        toast.success(`Signed up successfully!`)
+        router.push('/new')
+        return
+      }
       toast.success(`Signed up successfully!`)
       setIsSubmitted(true)
       onSuccess?.()
@@ -80,7 +95,7 @@ export const SignUpForm = ({ onSuccess }: { onSuccess?: () => void }) => {
   const onSubmit: SubmitHandler<z.infer<typeof schema>> = async ({ email, password }) => {
     // [Joshen] Separate submitting state as there's 2 async processes here
     let token = captchaToken
-    if (!token) {
+    if (!token && !IS_MOCK_BACKEND) {
       const captchaResponse = await captchaRef.current?.execute({ async: true })
       token = captchaResponse?.response ?? null
     }
