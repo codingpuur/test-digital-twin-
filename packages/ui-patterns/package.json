@@ -798,7 +798,7 @@
     "smol-toml": "^1.6.1",
     "sonner": "^1.5.0",
     "sql-formatter": "^15.0.0",
-    "sse.js": "^2.2.0",
+    "sse.js": "^2.8.0",
     "tsconfig": "workspace:*",
     "ui": "workspace:*",
     "unist-util-visit": "^5.0.0",
