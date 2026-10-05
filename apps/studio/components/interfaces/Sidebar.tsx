@@ -45,6 +45,8 @@ import { useSelectedOrganizationQuery } from '@/hooks/misc/useSelectedOrganizati
 import { useSelectedProjectQuery } from '@/hooks/misc/useSelectedProject'
 import { useTrack } from '@/lib/telemetry/track'
 import { SHORTCUT_IDS } from '@/state/shortcuts/registry'
+import { TwinLinks } from '@/components/interfaces/Twin/TwinLinks'
+import { IS_MOCK_BACKEND } from '@/lib/mock/config'
 
 export const ICON_SIZE = 32
 export const ICON_STROKE_WIDTH = 1.5
@@ -134,7 +136,7 @@ export const SidebarContent = ({ footer }: { footer?: ReactNode }) => {
         <SidebarContentPrimitive>
           {projectRef ? (
             <motion.nav key="project-links">
-              <ProjectLinks />
+              {IS_MOCK_BACKEND ? <TwinLinks /> : <ProjectLinks />}
             </motion.nav>
           ) : (
             <motion.nav

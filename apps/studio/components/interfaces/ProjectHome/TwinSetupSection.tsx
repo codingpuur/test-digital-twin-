@@ -111,7 +111,7 @@ export const TwinSetupSection = () => {
             <p className="text-base">Drag and drop your 3D model here</p>
             <p className="text-sm text-foreground-lighter">GLB, glTF or IFC, up to 500 MB</p>
           </div>
-          <Button type="primary" icon={<Upload size={14} />}>
+          <Button variant="primary" icon={<Upload size={14} />}>
             Browse files
           </Button>
         </CardContent>

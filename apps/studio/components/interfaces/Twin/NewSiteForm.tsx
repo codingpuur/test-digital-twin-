@@ -58,7 +58,7 @@ export const NewSiteForm = () => {
             />
           </CardContent>
           <CardFooter className="justify-end">
-            <Button form={formId} htmlType="submit" type="primary" loading={isPending}>
+            <Button form={formId} type="submit" variant="primary" loading={isPending}>
               Create site
             </Button>
           </CardFooter>

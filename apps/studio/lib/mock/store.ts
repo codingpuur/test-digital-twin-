@@ -62,7 +62,7 @@ export const slugify = (value: string) =>
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-|-$/g, '') || 'item'
 
-const base64url = (input: Buffer | string) => Buffer.from(input).toString('base64url')
+const base64url = (input: string) => Buffer.from(input).toString('base64url')
 
 export const signJwt = (payload: Record<string, unknown>) => {
   const header = base64url(JSON.stringify({ alg: 'HS256', typ: 'JWT' }))

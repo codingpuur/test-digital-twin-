@@ -347,3 +347,8 @@
 .sb-grid-select-cell__header__input {
   @apply border-background-surface-100;
 }
+
+/* Digital twin inventory: row selected from the 3D viewer or the table */
+.rdg-row.twin-row-selected .rdg-cell {
+  background-color: rgba(62, 207, 142, 0.2) !important;
+}

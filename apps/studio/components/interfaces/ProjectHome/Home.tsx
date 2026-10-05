@@ -25,7 +25,7 @@ import { ProjectUsageSection } from './ProjectUsageSection'
 import { ProjectUsageSectionDeltas } from './ProjectUsageSectionDeltas'
 import { TwinSetupSection } from './TwinSetupSection'
 import { useIsExplorerEnabled } from '@/components/interfaces/App/FeaturePreview/FeaturePreviewContext'
-import { SiteHome } from '@/components/interfaces/Twin/SiteHome'
+import { SiteWorkspace } from '@/components/interfaces/Twin/SiteWorkspace'
 import { TopSection } from '@/components/interfaces/ProjectHome/TopSection'
 import { ProjectNeedsSecuring } from '@/components/layouts/ProjectNeedsSecuring/ProjectNeedsSecuring'
 import { ScaffoldContainer, ScaffoldSection } from '@/components/layouts/Scaffold'
@@ -107,7 +107,7 @@ export const ProjectHome = () => {
     return true
   })
 
-  if (IS_MOCK_BACKEND) return <SiteHome />
+  if (IS_MOCK_BACKEND) return <SiteWorkspace />
 
   return (
     <ProjectNeedsSecuring>
