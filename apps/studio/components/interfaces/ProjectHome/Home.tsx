@@ -18,12 +18,12 @@ import { useEffect, useRef } from 'react'
 import { cn } from 'ui'
 
 import { AdvisorSection } from './AdvisorSection'
-import { ConnectSection } from './ConnectSection'
 import { CustomReportSection } from './CustomReportSection'
 import { DEFAULT_SECTION_ORDER, mergeSectionOrder } from './Home.utils'
 import { NotebooksSection } from './NotebooksSection'
 import { ProjectUsageSection } from './ProjectUsageSection'
 import { ProjectUsageSectionDeltas } from './ProjectUsageSectionDeltas'
+import { TwinSetupSection } from './TwinSetupSection'
 import { useIsExplorerEnabled } from '@/components/interfaces/App/FeaturePreview/FeaturePreviewContext'
 import { TopSection } from '@/components/interfaces/ProjectHome/TopSection'
 import { ProjectNeedsSecuring } from '@/components/layouts/ProjectNeedsSecuring/ProjectNeedsSecuring'
@@ -137,7 +137,7 @@ export const ProjectHome = () => {
                     if (id === 'connect' && showConnectSection) {
                       return (
                         <SortableSection gripClassName={SORT_GRIP_CLASS} key={id} id={id}>
-                          <ConnectSection />
+                          <TwinSetupSection />
                         </SortableSection>
                       )
                     }
