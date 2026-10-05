@@ -1,6 +1,8 @@
 # Digital Twin Platform — UI Plan (UI-only, mock data)
 
+Domain: **Pumping Station digital twin**.
 Design = **Supabase Studio ki premium feel** + **Netdata ke real-time monitoring features**.
+Functional references: **Autodesk Tandem** (facility twin, 3D + asset data), **AVEVA** (SCADA/HMI + historian, P&ID), **IBM Maximo** (asset mgmt, work orders, PM).
 
 ## 1. Goal & scope
 - Sirf frontend. Backend nahi — saara data mock/simulated (live-looking streams).
@@ -36,23 +38,38 @@ Note: Studio ka code (`apps/studio`) monorepo-heavy hai (internal packages). Poo
 - Status colours: green ok / amber warn / red critical / blue info — charts ke liye colour-blind safe palette.
 - Tokens CSS variables mein (`--bg`, `--surface`, `--border`, `--accent`).
 
-## 5. Information architecture
-Left icon-rail + collapsible section sidebar (Supabase jaisa), top bar mein project/workspace switcher, time-range, ⌘K.
+## 5. Information architecture (Pumping Station)
+Left icon-rail + collapsible sidebar (Supabase jaisa), top bar: station switcher, time-range, ⌘K, alarm bell.
 
-1. **Overview** — fleet health, KPI cards, live sparklines, active alerts, map
-2. **Twins (Assets)** — table editor style list; row click → twin detail
-3. **Twin Detail** — tabs: Live · 3D/Schematic · Properties · History · Alerts · Relations
-4. **Live Metrics** — Netdata-style dense chart grid, per-second, shared crosshair, zoom/pan, pause
-5. **Topology** — React Flow graph of assets & dependencies with health colouring
-6. **Alerts** — list, severity, ack/mute, rules
-7. **Rules / Query** — SQL-like editor (Monaco) + saved queries, rule builder
-8. **Simulation** — what-if sliders, replay timeline (scrub past state)
-9. **Data Sources** — connectors UI (MQTT/OPC-UA/HTTP, mock), device list
-10. **Logs / Events** — virtualized log explorer with filters
-11. **Settings** — workspace, members, API keys, theme
+| # | Module | Inspired by | Kya hoga |
+|---|---|---|---|
+| 1 | **Station Overview** | Netdata + AVEVA | KPIs: total flow (m³/h), header pressure, wet-well level, power kW, specific energy kWh/m³, running pumps, active alarms; live sparklines |
+| 2 | **3D Station Model** | Autodesk Tandem | Pump house 3D (R3F): pumps, motors, valves, pipes, wet well, panels. Click asset → side panel (properties + live values). Colour by status/metric, section/explode view, room/level tree |
+| 3 | **P&ID / SCADA Mimic** | AVEVA HMI + AutoCAD | 2D SVG schematic: wet well → suction → pumps → discharge header. Animated flow, pump run/stop/fault, valve open/close, live tags. Layer toggles, pan/zoom, tag search |
+| 4 | **Assets Register** | Maximo | Table (Supabase table-editor style): Asset ID, type, location, criticality, status, install date, OEM, parent/child hierarchy, QR/tag |
+| 5 | **Asset Detail** | Tandem + Maximo | Tabs: Live · Specs/Nameplate · Curves (pump curve with operating point, efficiency/BEP) · Maintenance history · Documents (O&M manuals, drawings) · Spares · Relations |
+| 6 | **Live Trends** | Netdata + AVEVA Historian | Dense chart grid: flow, pressure, level, vibration, temp, current, kW. Shared crosshair, zoom/pan, pause, compare pumps, alarm limit bands, anomaly ribbon |
+| 7 | **Alarms & Events** | AVEVA | Priority (critical/high/med/low), ack/shelve, ISA-18.2 style states, alarm journal, first-out |
+| 8 | **Work Orders** | Maximo | Kanban + table: corrective/preventive/inspection, assign, status flow (WAPPR→APPR→INPRG→COMP→CLOSE), failure code, labor/parts |
+| 9 | **Preventive Maintenance** | Maximo | PM schedules calendar, running-hours / time based triggers, due/overdue |
+| 10 | **Condition & Predictive** | Netdata anomaly + Maximo Health | Health score per asset, vibration/temperature trend, RUL estimate, anomaly flags (mock) |
+| 11 | **Inventory (Spares)** | Maximo | Spare parts, stock levels, reorder, linked to asset |
+| 12 | **Reports** | AVEVA/Maximo | Daily run-hours, energy, flow totals, downtime, MTBF/MTTR — export UI |
+| 13 | **Simulation / What-if** | Tandem | Change setpoints (pump speed, valve %), see predicted flow/pressure/energy; replay timeline scrubber |
+| 14 | **Drawings & Docs** | AutoCAD | DWG-style viewer (SVG/PDF mock): layers, measure tool, markup, linked to asset |
+| 15 | **Settings** | Supabase | Users/roles (operator, maintenance, engineer, admin), thresholds, units, API keys |
+
+## 5a. Pumping-station data model (mock)
+- **Station** → Areas (Wet well, Pump hall, Electrical room, Outlet chamber) → **Assets**
+- Asset types: Pump (duty/standby ×4), Motor/VFD, Valve (suction, NRV, discharge), Level sensor, Flow meter, Pressure transmitter, Vibration sensor, MCC panel, Surge vessel, Generator.
+- Tags like `P-101.RUN`, `P-101.CUR`, `P-101.VIB`, `LT-001.LEVEL`, `FT-201.FLOW`, `PT-202.PRESS`.
+- Simulated behaviour: wet-well level fills/drains → duty/standby auto start-stop (lead/lag), flow follows pump curve, vibration/temp drift, random faults (high vibration, seal leak, trip, low level), runtime counters drive PM due.
+
+## 5b. Extra pages for quick access
+Operator view (big-tile HMI, touch friendly) and Maintenance view (work orders first) as role-based home screens.
 
 ## 6. Key components (reusable)
-`AppShell`, `SidebarNav`, `ProjectSwitcher`, `CommandMenu (⌘K)`, `TimeRangePicker`, `LiveChart (uPlot)`, `SparklineCard`, `StatusBadge`, `DataTable`, `PropertyPanel`, `AlertRow`, `TwinCard`, `TopologyGraph`, `Scene3D`, `CodeEditor`, `EmptyState`, `Toast`, `Skeleton`.
+`AppShell`, `SidebarNav`, `ProjectSwitcher`, `CommandMenu (⌘K)`, `TimeRangePicker`, `LiveChart (uPlot)`, `SparklineCard`, `StatusBadge`, `DataTable`, `PropertyPanel`, `AlertRow`, `TwinCard`, `MimicCanvas` (SVG P&ID), `PumpCurveChart`, `AlarmBanner`, `WorkOrderBoard`, `HealthGauge`, `Scene3D`, `CodeEditor`, `EmptyState`, `Toast`, `Skeleton`.
 
 ## 7. Mock data engine
 - Asset model: `{id, name, type, status, location, tags, metrics[], relations[]}`
@@ -63,19 +80,20 @@ Left icon-rail + collapsible section sidebar (Supabase jaisa), top bar mein proj
 ## 8. Phases
 | Phase | Deliverable | Est. |
 |---|---|---|
-| 0 | Repo setup, Next+Tailwind+shadcn, tokens, AppShell, sidebar, ⌘K | 1–2 d |
-| 1 | Mock engine + Overview dashboard (KPI, sparklines, alerts) | 2–3 d |
-| 2 | Twins table (filter/sort/virtualized) + Twin detail (properties, live charts) | 3 d |
-| 3 | Live Metrics page (uPlot grid, sync crosshair, zoom, pause, anomaly ribbon) | 3–4 d |
-| 4 | Topology (React Flow) + 3D twin view (R3F) | 3–4 d |
-| 5 | Alerts + Rules/Query editor + Logs | 3 d |
-| 6 | Simulation/replay timeline, settings, data sources UI | 2–3 d |
-| 7 | Polish: light theme, responsive, a11y, animations, empty/loading states, Playwright smoke | 2 d |
+| 0 | Setup (Next+Tailwind+shadcn), tokens, AppShell, sidebar, ⌘K, station switcher | 1–2 d |
+| 1 | Pumping-station mock engine (level, lead/lag, pump curves, faults) + Station Overview | 3 d |
+| 2 | Assets Register + Asset Detail (live, specs, pump curve, relations) | 3 d |
+| 3 | Live Trends (uPlot) + Alarms & Events | 4 d |
+| 4 | P&ID / SCADA mimic (animated SVG) | 3 d |
+| 5 | 3D Station Model (R3F, click → panel, status colouring) | 4–5 d |
+| 6 | Maximo side: Work Orders, PM calendar, Spares, Health/Predictive | 4–5 d |
+| 7 | Simulation/replay, Reports, Drawings viewer, Settings/roles | 3 d |
+| 8 | Polish: light theme, responsive, a11y, empty/loading states, Playwright smoke | 2 d |
 
 ## 9. Folder structure
 ```
 src/
-  app/(dashboard)/{overview,twins,twins/[id],metrics,topology,alerts,query,simulation,sources,logs,settings}
+  app/(dashboard)/{overview,model3d,mimic,assets,assets/[id],trends,alarms,work-orders,pm,health,inventory,reports,simulation,drawings,settings}
   components/{ui,layout,charts,twin,topology,scene}
   lib/{mock,store,utils}
   styles/tokens.css
@@ -87,12 +105,12 @@ src/
 - Live charts performance: uPlot + max ~50 charts visible, off-screen charts pause (IntersectionObserver).
 - 3D optional rakho taaki scope na phoole.
 
-## 11. Open questions (aapse)
-1. Domain kya hai — industrial/factory, data-center/IT, smart building, ya generic?
-2. Brand/accent colour aur product name?
-3. 3D view chahiye ya schematic/2D kaafi hai?
-4. Dark-only ya light bhi?
-5. Deploy kahan (Vercel / static)?
+## 11. Open questions
+1. 3D model: simple procedural (boxes/cylinders, jaldi) ya real GLB/IFC model aap denge? (Default: procedural, baad mein GLB swap)
+2. Product name + accent colour?
+3. Units: metric (m³/h, bar, kW) — OK?
+4. Dark-only pehle, light baad mein?
+5. Pumps ki sankhya/layout (default: 3 duty + 1 standby, ek wet well)?
 
 ## 12. Definition of done (UI-only)
-Poora clickable prototype, mock live data se chalta hua, dark theme polished, 10 main screens, `npm run build` + lint + smoke tests green.
+Poora clickable prototype, mock live data se chalta hua, dark theme polished, 15 modules, `npm run build` + lint + smoke tests green.
