@@ -79,27 +79,31 @@ export const AddCardDialog = ({ open, rangeId, now, onOpenChange, onAdd }: AddCa
   }
 
   const canAdd =
-    !!definition && (definition.type === 'custom-text' ? !!config.text : config.streamIds.length > 0)
+    !!definition &&
+    (definition.type === 'custom-text' ? !!config.text : config.streamIds.length > 0)
 
   const toggleStream = (streamId: string, max: number) =>
     setConfig((previous) => {
       const selected = previous.streamIds.includes(streamId)
-      if (selected) return { ...previous, streamIds: previous.streamIds.filter((id) => id !== streamId) }
+      if (selected)
+        return { ...previous, streamIds: previous.streamIds.filter((id) => id !== streamId) }
       return { ...previous, streamIds: [...previous.streamIds, streamId].slice(-max) }
     })
 
   const previewConfig: CardConfig =
     useSampleData || !definition
-      ? { streamIds: SAMPLE_STREAMS[definition?.type ?? ''] ?? [], text: config.text, title: config.title }
+      ? {
+          streamIds: SAMPLE_STREAMS[definition?.type ?? ''] ?? [],
+          text: config.text,
+          title: config.title,
+        }
       : config
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent size="xlarge" aria-describedby={undefined}>
         <DialogHeader>
-          <DialogTitle>
-            Add a card{definition ? ` / ${definition.label}` : ''}
-          </DialogTitle>
+          <DialogTitle>Add a card{definition ? ` / ${definition.label}` : ''}</DialogTitle>
         </DialogHeader>
         <DialogSectionSeparator />
 
@@ -224,7 +228,9 @@ export const AddCardDialog = ({ open, rangeId, now, onOpenChange, onAdd }: AddCa
                 {!useSampleData && !canAdd ? (
                   <div className="flex h-full flex-col items-center justify-center gap-y-1 text-center">
                     <p>Preview not available</p>
-                    <p className="text-sm text-foreground-lighter">Select all fields to see preview</p>
+                    <p className="text-sm text-foreground-lighter">
+                      Select all fields to see preview
+                    </p>
                   </div>
                 ) : (
                   <DashboardCardView

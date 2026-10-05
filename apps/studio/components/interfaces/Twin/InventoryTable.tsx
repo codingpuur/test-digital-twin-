@@ -53,7 +53,10 @@ export const InventoryTable = ({ elements, selectedId, onSelect }: InventoryTabl
             onChange={(event) => setSearch(event.target.value)}
           />
           <label className="flex cursor-pointer items-center gap-x-2 text-sm text-foreground-light">
-            <Checkbox checked={assetsOnly} onCheckedChange={(value) => setAssetsOnly(value === true)} />
+            <Checkbox
+              checked={assetsOnly}
+              onCheckedChange={(value) => setAssetsOnly(value === true)}
+            />
             Assets only
           </label>
         </div>

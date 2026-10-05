@@ -1,9 +1,11 @@
 import { Boxes, FileUp } from 'lucide-react'
 import { useRef } from 'react'
-import { Button, Checkbox } from 'ui'
+import { Button, Checkbox, cn } from 'ui'
 import { EmptyStatePresentational } from 'ui-patterns/EmptyStatePresentational'
 
 import { DashboardsPanel } from './dashboards/DashboardsPanel'
+import { SimulationPanel, type DataSource } from './simulation/SimulationPanel'
+import type { SimulationController } from './simulation/useSimulation'
 import { TWIN_MODULES, type TwinElement } from './twin.types'
 
 type ModulePanelProps = {
@@ -16,11 +18,16 @@ type ModulePanelProps = {
   onToggleCategory: (category: string) => void
   onUploadFile: (file: File) => void
   onUseDemo: () => void
+  simulation: SimulationController
+  dataSource: DataSource
+  onDataSourceChange: (source: DataSource) => void
 }
 
 const countByCategory = (elements: TwinElement[]) => {
   const counts = new Map<string, number>()
-  elements.forEach((element) => counts.set(element.category, (counts.get(element.category) ?? 0) + 1))
+  elements.forEach((element) =>
+    counts.set(element.category, (counts.get(element.category) ?? 0) + 1)
+  )
   return [...counts.entries()].sort(([a], [b]) => a.localeCompare(b))
 }
 
@@ -34,6 +41,9 @@ export const ModulePanel = ({
   onToggleCategory,
   onUploadFile,
   onUseDemo,
+  simulation,
+  dataSource,
+  onDataSourceChange,
 }: ModulePanelProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const label = TWIN_MODULES.find((item) => item.id === moduleId)?.label ?? 'Module'
@@ -45,8 +55,16 @@ export const ModulePanel = ({
         <h2 className="text-sm uppercase tracking-wide">{label}</h2>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4">
+      <div className={cn('flex-1 overflow-y-auto', moduleId !== 'simulation' && 'p-4')}>
         {moduleId === 'dashboards' && <DashboardsPanel />}
+
+        {moduleId === 'simulation' && (
+          <SimulationPanel
+            simulation={simulation}
+            dataSource={dataSource}
+            onDataSourceChange={onDataSourceChange}
+          />
+        )}
 
         {moduleId === 'files' && (
           <div className="flex flex-col gap-y-4">
@@ -104,7 +122,7 @@ export const ModulePanel = ({
           </div>
         )}
 
-        {!['dashboards', 'files', 'filters', 'assets'].includes(moduleId) && (
+        {!['dashboards', 'files', 'filters', 'assets', 'simulation'].includes(moduleId) && (
           <EmptyStatePresentational
             icon={Boxes}
             title={`${label} is coming soon`}

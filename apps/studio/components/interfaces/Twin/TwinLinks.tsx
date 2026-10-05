@@ -7,6 +7,7 @@ import {
   Filter,
   FolderOpen,
   Network,
+  PlayCircle,
   Tag,
   Ticket,
   Users,
@@ -22,16 +23,17 @@ import { ICON_SIZE, ICON_STROKE_WIDTH, SideBarNavLink } from '@/components/inter
 const getModuleRoutes = () => {
   const iconProps = { size: ICON_SIZE, strokeWidth: ICON_STROKE_WIDTH }
   return [
-  { key: 'dashboards', label: 'Dashboards', icon: <ChartPie {...iconProps} /> },
-  { key: 'filters', label: 'Filters', icon: <Filter {...iconProps} /> },
-  { key: 'assets', label: 'Assets', icon: <Tag {...iconProps} /> },
-  { key: 'files', label: 'Files', icon: <FolderOpen {...iconProps} /> },
-  { key: 'docs', label: 'Docs', icon: <FileText {...iconProps} /> },
-  { key: 'systems', label: 'Systems', icon: <Network {...iconProps} /> },
-  { key: 'connections', label: 'Connections', icon: <Cable {...iconProps} /> },
-  { key: 'tickets', label: 'Tickets', icon: <Ticket {...iconProps} /> },
-  { key: 'users', label: 'Users', icon: <Users {...iconProps} /> },
-  { key: 'streams', label: 'Streams', icon: <Waves {...iconProps} /> },
+    { key: 'dashboards', label: 'Dashboards', icon: <ChartPie {...iconProps} /> },
+    { key: 'filters', label: 'Filters', icon: <Filter {...iconProps} /> },
+    { key: 'assets', label: 'Assets', icon: <Tag {...iconProps} /> },
+    { key: 'files', label: 'Files', icon: <FolderOpen {...iconProps} /> },
+    { key: 'docs', label: 'Docs', icon: <FileText {...iconProps} /> },
+    { key: 'systems', label: 'Systems', icon: <Network {...iconProps} /> },
+    { key: 'connections', label: 'Connections', icon: <Cable {...iconProps} /> },
+    { key: 'tickets', label: 'Tickets', icon: <Ticket {...iconProps} /> },
+    { key: 'users', label: 'Users', icon: <Users {...iconProps} /> },
+    { key: 'streams', label: 'Streams', icon: <Waves {...iconProps} /> },
+    { key: 'simulation', label: 'Simulation', icon: <PlayCircle {...iconProps} /> },
   ]
 }
 

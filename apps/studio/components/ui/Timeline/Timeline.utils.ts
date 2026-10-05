@@ -1,8 +1,4 @@
-import {
-  MAX_TIMELINE_RANGE_MS,
-  MIN_TIMELINE_RANGE_MS,
-  type TimelineTick,
-} from './Timeline.types'
+import { MAX_TIMELINE_RANGE_MS, MIN_TIMELINE_RANGE_MS, type TimelineTick } from './Timeline.types'
 
 const MINUTE = 60_000
 const HOUR = 60 * MINUTE

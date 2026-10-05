@@ -2,13 +2,18 @@ import { MousePointerClick } from 'lucide-react'
 import { Badge } from 'ui'
 import { EmptyStatePresentational } from 'ui-patterns/EmptyStatePresentational'
 
-import { formatValue, getStatus, getStream, readStream } from './dashboards/mock-streams'
+import type { AnimationBinding } from './simulation/animation.types'
+import { BindingsSection } from './simulation/BindingsSection'
+import { getElementReadings, type Signals } from './simulation/signals'
 import type { TwinElement } from './twin.types'
 
 type PropertiesPanelProps = {
   element: TwinElement | null
-  /** Timestamp the readings are shown for. */
-  time: number
+  signals: Signals
+  /** What the readings below come from, shown in their heading. */
+  readingsLabel: string
+  bindings: AnimationBinding[]
+  onBindingsChange: (bindings: AnimationBinding[]) => void
 }
 
 const PROPERTY_FIELDS: { key: keyof TwinElement; label: string }[] = [
@@ -21,8 +26,14 @@ const PROPERTY_FIELDS: { key: keyof TwinElement; label: string }[] = [
   { key: 'guid', label: 'GUID' },
 ]
 
-export const PropertiesPanel = ({ element, time }: PropertiesPanelProps) => {
-  const streams = (element?.streamIds ?? []).flatMap((id) => getStream(id) ?? [])
+export const PropertiesPanel = ({
+  element,
+  signals,
+  readingsLabel,
+  bindings,
+  onBindingsChange,
+}: PropertiesPanelProps) => {
+  const readings = element ? getElementReadings(element, signals) : []
 
   return (
     <div className="flex h-full flex-col bg-dash-sidebar">
@@ -51,28 +62,34 @@ export const PropertiesPanel = ({ element, time }: PropertiesPanelProps) => {
 
             <div className="flex flex-col gap-y-2">
               <h3 className="text-xs uppercase tracking-wide text-foreground-light">
-                Readings at {new Date(time).toLocaleString()}
+                Readings ({readingsLabel})
               </h3>
-              {streams.length === 0 && (
-                <p className="text-sm text-foreground-lighter">No streams linked to this element.</p>
+              {readings.length === 0 && (
+                <p className="text-sm text-foreground-lighter">
+                  No signals linked to this element.
+                </p>
               )}
-              {streams.map((stream) => {
-                const value = readStream(stream, time)
-                const status = getStatus(stream, value)
-                return (
-                  <div
-                    key={stream.id}
-                    className="flex items-center justify-between rounded-md border bg-surface-100 px-3 py-2 text-sm"
-                  >
-                    <span>{stream.name}</span>
-                    <span className="flex items-center gap-x-2">
-                      {formatValue(stream, value)} {stream.unit}
-                      <Badge variant={status === 'Warning' ? 'warning' : 'default'}>{status}</Badge>
-                    </span>
-                  </div>
-                )
-              })}
+              {readings.map((reading) => (
+                <div
+                  key={reading.label}
+                  className="flex items-center justify-between rounded-md border bg-surface-100 px-3 py-2 text-sm"
+                >
+                  <span>{reading.label}</span>
+                  <span className="flex items-center gap-x-2">
+                    {reading.value}
+                    <Badge variant={reading.isWarning ? 'warning' : 'default'}>
+                      {reading.isWarning ? 'Warning' : 'Normal'}
+                    </Badge>
+                  </span>
+                </div>
+              ))}
             </div>
+
+            <BindingsSection
+              elementName={element.name}
+              bindings={bindings}
+              onChange={onBindingsChange}
+            />
           </div>
         )}
       </div>

@@ -4,19 +4,9 @@ import Link from 'next/link'
 import { useRouter } from 'next/router'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import {
-  Badge,
-  Button,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from 'ui'
+import { Badge, Button, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from 'ui'
 import { EmptyStatePresentational } from 'ui-patterns/EmptyStatePresentational'
 
-import { TimelineBar } from '@/components/ui/Timeline/TimelineBar'
-import { useTimeline } from '@/components/ui/Timeline/useTimeline'
 import { AddCardDialog } from './AddCardDialog'
 import { DashboardCardView } from './DashboardCardView'
 import {
@@ -26,6 +16,8 @@ import {
   type DateRangeId,
 } from './dashboards.types'
 import { createDashboardId, useDashboards } from './useDashboards'
+import { TimelineBar } from '@/components/ui/Timeline/TimelineBar'
+import { useTimeline } from '@/components/ui/Timeline/useTimeline'
 
 const LAYOUTS = [
   { value: '1', label: '1 column', className: 'grid-cols-1' },
@@ -156,7 +148,11 @@ export const DashboardEditor = () => {
             title="No content"
             description="Add a card to show live values from your streams."
           >
-            <Button variant="primary" icon={<Plus size={14} />} onClick={() => setIsAddingCard(true)}>
+            <Button
+              variant="primary"
+              icon={<Plus size={14} />}
+              onClick={() => setIsAddingCard(true)}
+            >
               Add a card
             </Button>
           </EmptyStatePresentational>
@@ -164,7 +160,10 @@ export const DashboardEditor = () => {
         {dashboard.cards.length > 0 && (
           <div className={`grid gap-4 ${gridClassName}`}>
             {dashboard.cards.map((card) => (
-              <div key={card.id} className="group relative min-h-56 rounded-md border bg-surface-100 p-4">
+              <div
+                key={card.id}
+                className="group relative min-h-56 rounded-md border bg-surface-100 p-4"
+              >
                 <Button
                   variant="text"
                   size="tiny"

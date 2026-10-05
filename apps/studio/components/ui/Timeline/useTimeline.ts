@@ -75,7 +75,10 @@ export const useTimeline = ({
           return { ...previous, cursor: now, windowEnd: now, isLive: true, isPlaying: false }
         }
         // Keep the cursor inside the visible window while it moves.
-        const windowEnd = next > previous.windowEnd ? Math.min(now, next + previous.rangeMs / 4) : previous.windowEnd
+        const windowEnd =
+          next > previous.windowEnd
+            ? Math.min(now, next + previous.rangeMs / 4)
+            : previous.windowEnd
         return { ...previous, cursor: next, windowEnd }
       })
       frame = requestAnimationFrame(tick)

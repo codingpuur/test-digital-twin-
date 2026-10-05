@@ -1,5 +1,13 @@
 import { useMemo } from 'react'
-import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import {
+  CartesianGrid,
+  Line,
+  LineChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts'
 import { Badge, cn } from 'ui'
 
 import type { DashboardCard, DateRangeId } from './dashboards.types'
@@ -28,7 +36,17 @@ const CardTitle = ({ children }: { children: string }) => (
   <p className="text-xs uppercase tracking-wide text-foreground-light">{children}</p>
 )
 
-const BigValue = ({ title, subtitle, value, unit }: { title: string; subtitle: string; value: string; unit: string }) => (
+const BigValue = ({
+  title,
+  subtitle,
+  value,
+  unit,
+}: {
+  title: string
+  subtitle: string
+  value: string
+  unit: string
+}) => (
   <div className="flex h-full flex-col items-center justify-center gap-y-1 text-center">
     <CardTitle>{title}</CardTitle>
     <p className="text-xs text-foreground-lighter">{subtitle}</p>
@@ -52,7 +70,12 @@ const Gauge = ({ stream, value }: { stream: MockStream; value: number }) => {
       <CardTitle>{stream.name}</CardTitle>
       <p className="text-xs text-foreground-lighter">{stream.asset}</p>
       <svg viewBox="0 0 180 100" className="w-48">
-        <path d="M 20 90 A 70 70 0 0 1 160 90" fill="none" stroke="rgba(128,128,128,0.3)" strokeWidth="12" />
+        <path
+          d="M 20 90 A 70 70 0 0 1 160 90"
+          fill="none"
+          stroke="rgba(128,128,128,0.3)"
+          strokeWidth="12"
+        />
         <path
           d={`M 20 90 A 70 70 0 0 1 ${endX} ${endY}`}
           fill="none"
@@ -119,7 +142,9 @@ export const DashboardCardView = ({ card, rangeId, now, isSample }: DashboardCar
     return (
       <BigValue
         title={`${primary.name} (average)`}
-        subtitle={rangeId === '24h' ? 'Last 24 hours' : rangeId === '7d' ? 'Last 7 days' : 'Last 30 days'}
+        subtitle={
+          rangeId === '24h' ? 'Last 24 hours' : rangeId === '7d' ? 'Last 7 days' : 'Last 30 days'
+        }
         value={formatValue(primary, average)}
         unit={primary.unit}
       />
@@ -176,7 +201,12 @@ export const DashboardCardView = ({ card, rangeId, now, isSample }: DashboardCar
               scale="time"
               tick={{ fontSize: 10 }}
               tickFormatter={(time: number) =>
-                new Date(time).toLocaleString([], rangeId === '24h' ? { hour: '2-digit', minute: '2-digit' } : { month: 'short', day: 'numeric' })
+                new Date(time).toLocaleString(
+                  [],
+                  rangeId === '24h'
+                    ? { hour: '2-digit', minute: '2-digit' }
+                    : { month: 'short', day: 'numeric' }
+                )
               }
             />
             {streams.map((stream, index) => (
@@ -191,7 +221,11 @@ export const DashboardCardView = ({ card, rangeId, now, isSample }: DashboardCar
             ))}
             <Tooltip
               labelFormatter={(time: number) => new Date(time).toLocaleString()}
-              contentStyle={{ background: 'hsl(var(--background-overlay-default))', border: '1px solid hsl(var(--border-default))', fontSize: 12 }}
+              contentStyle={{
+                background: 'hsl(var(--background-overlay-default))',
+                border: '1px solid hsl(var(--border-default))',
+                fontSize: 12,
+              }}
             />
             {streams.map((stream, index) => (
               <Line

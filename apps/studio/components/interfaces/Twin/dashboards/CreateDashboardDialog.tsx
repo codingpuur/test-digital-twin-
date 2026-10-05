@@ -87,7 +87,11 @@ export const CreateDashboardDialog = ({
                 render={({ field }) => (
                   <FormItemLayout label="Description" layout="vertical" description="Optional">
                     <FormControl>
-                      <Textarea {...field} placeholder="What does this dashboard monitor?" rows={2} />
+                      <Textarea
+                        {...field}
+                        placeholder="What does this dashboard monitor?"
+                        rows={2}
+                      />
                     </FormControl>
                   </FormItemLayout>
                 )}

@@ -211,6 +211,110 @@ const createGeometry = (part: PartSpec) => {
   return new THREE.CylinderGeometry(x, x, y, 32)
 }
 
+const FLOW_DASH_LENGTH = 0.8
+
+/** Dashed strip texture; `axis` is the UV direction the dashes repeat along. */
+const createDashTexture = (axis: 'u' | 'v', length: number) => {
+  const canvas = document.createElement('canvas')
+  canvas.width = 64
+  canvas.height = 64
+  const context = canvas.getContext('2d')
+  if (context) {
+    context.fillStyle = '#9fd0ff'
+    if (axis === 'u') context.fillRect(0, 0, 24, 64)
+    else context.fillRect(0, 0, 64, 24)
+  }
+  const texture = new THREE.CanvasTexture(canvas)
+  texture.wrapS = texture.wrapT = THREE.RepeatWrapping
+  if (axis === 'u') texture.repeat.set(length / FLOW_DASH_LENGTH, 1)
+  else texture.repeat.set(1, length / FLOW_DASH_LENGTH)
+  return texture
+}
+
+const createImpeller = (radius: number) => {
+  const impeller = new THREE.Group()
+  impeller.name = 'impeller'
+  const material = new THREE.MeshStandardMaterial({
+    color: '#9fb2c6',
+    metalness: 0.4,
+    roughness: 0.4,
+  })
+  for (let i = 0; i < 4; i++) {
+    const blade = new THREE.Mesh(new THREE.BoxGeometry(radius * 2.4, 0.06, 0.16), material)
+    blade.rotation.y = (i * Math.PI) / 4
+    impeller.add(blade)
+  }
+  return impeller
+}
+
+const createValveHandle = () => {
+  const handle = new THREE.Mesh(
+    new THREE.BoxGeometry(0.8, 0.08, 0.1),
+    new THREE.MeshStandardMaterial({ color: '#f0c05a' })
+  )
+  handle.name = 'handle'
+  return handle
+}
+
+const createFlowOverlay = (part: PartSpec) => {
+  const isVertical = part.shape === 'cylinder'
+  const length = isVertical ? part.size[1] : part.size[0]
+  const geometry = isVertical
+    ? new THREE.CylinderGeometry(
+        part.size[0] * 1.08,
+        part.size[0] * 1.08,
+        part.size[1],
+        24,
+        1,
+        true
+      )
+    : new THREE.BoxGeometry(part.size[0], part.size[1] * 1.12, part.size[2] * 1.12)
+  const overlay = new THREE.Mesh(
+    geometry,
+    new THREE.MeshBasicMaterial({
+      map: createDashTexture(isVertical ? 'v' : 'u', length),
+      transparent: true,
+      depthWrite: false,
+      side: THREE.DoubleSide,
+    })
+  )
+  overlay.name = 'flow'
+  overlay.userData.flowAxis = isVertical ? 'y' : 'x'
+  overlay.visible = false
+  return overlay
+}
+
+const createWater = (radius: number, height: number) => {
+  const water = new THREE.Mesh(
+    new THREE.CylinderGeometry(radius * 0.92, radius * 0.92, 1, 32),
+    new THREE.MeshStandardMaterial({ color: '#4c9be8', transparent: true, opacity: 0.85 })
+  )
+  water.name = 'water'
+  water.userData.fullHeight = height * 0.96
+  return water
+}
+
+// Child meshes that the animation engine drives. They carry no `twin` data, so they are not inventory rows.
+const addAnimatedParts = (mesh: THREE.Mesh, part: PartSpec) => {
+  const material = mesh.material as THREE.MeshStandardMaterial
+  if (part.category === 'Pumps') {
+    const impeller = createImpeller(part.size[0])
+    impeller.position.y = 0.25
+    mesh.add(impeller)
+  }
+  if (part.category === 'Valves') {
+    const handle = createValveHandle()
+    handle.position.y = part.size[0] + 0.05
+    mesh.add(handle)
+  }
+  if (part.category === 'Pipes') mesh.add(createFlowOverlay(part))
+  if (part.name === 'Wet well') {
+    material.transparent = true
+    material.opacity = 0.35
+    mesh.add(createWater(part.size[0], part.size[1]))
+  }
+}
+
 /** Procedural pumping station used until the user uploads a real model. */
 export const buildDemoStation = (): THREE.Group => {
   const group = new THREE.Group()
@@ -234,6 +338,7 @@ export const buildDemoStation = (): THREE.Group => {
       guid: `demo-${String(index + 1).padStart(4, '0')}`,
       streamIds: STREAMS_BY_NAME[part.name],
     }
+    addAnimatedParts(mesh, part)
     group.add(mesh)
   })
 

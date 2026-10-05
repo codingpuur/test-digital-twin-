@@ -1,20 +1,27 @@
+import { useParams } from 'common'
 import dynamic from 'next/dynamic'
 import { parseAsString, useQueryState } from 'nuqs'
-import { useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type * as THREE from 'three'
-import { Switch } from 'ui'
-import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from 'ui'
-
-import { TimelineBar } from '@/components/ui/Timeline/TimelineBar'
-import { useTimeline } from '@/components/ui/Timeline/useTimeline'
+import { cn, ResizableHandle, ResizablePanel, ResizablePanelGroup, Switch } from 'ui'
 
 import { buildDemoStation } from './demo-station'
-import { PropertiesPanel } from './PropertiesPanel'
-import { getStatusColors, STATUS_COLORS } from './status-colors'
 import { InventoryTable } from './InventoryTable'
 import { collectElements, loadModelFile } from './model-loaders'
 import { ModulePanel } from './ModulePanel'
+import { PropertiesPanel } from './PropertiesPanel'
+import type { AnimationBinding } from './simulation/animation.types'
+import { getDefaultBindings } from './simulation/default-bindings'
+import { getLiveSignals, getSimSignals, type Signals } from './simulation/signals'
+import { SimulationBar } from './simulation/SimulationBar'
+import type { DataSource } from './simulation/SimulationPanel'
+import { SimulationResults } from './simulation/SimulationResults'
+import { useSimulation } from './simulation/useSimulation'
+import { getStatusColors, STATUS_COLORS } from './status-colors'
 import { DEFAULT_TWIN_MODULE } from './twin.types'
+import { TimelineBar } from '@/components/ui/Timeline/TimelineBar'
+import { useTimeline } from '@/components/ui/Timeline/useTimeline'
+import { useLocalStorage } from '@/hooks/misc/useLocalStorage'
 
 const TwinViewer = dynamic(() => import('./TwinViewer').then((mod) => mod.TwinViewer), {
   ssr: false,
@@ -22,33 +29,73 @@ const TwinViewer = dynamic(() => import('./TwinViewer').then((mod) => mod.TwinVi
 
 const DEMO_MODEL_NAME = 'Demo pumping station'
 
+type BottomTab = 'inventory' | 'simulation'
+
 export const SiteWorkspace = () => {
+  const { ref } = useParams()
   const [moduleId] = useQueryState('module', parseAsString.withDefault(DEFAULT_TWIN_MODULE))
 
   const [scene, setScene] = useState<THREE.Object3D>(() => buildDemoStation())
   const [modelName, setModelName] = useState(DEMO_MODEL_NAME)
+  const [isDemoModel, setIsDemoModel] = useState(true)
   const [isLoadingModel, setIsLoadingModel] = useState(false)
   const [modelError, setModelError] = useState<string | null>(null)
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [hiddenCategories, setHiddenCategories] = useState<Set<string>>(new Set())
+  const [dataSource, setDataSource] = useState<DataSource>('live')
+  const [bottomTab, setBottomTab] = useState<BottomTab>('inventory')
 
   const timeline = useTimeline()
+  const simulation = useSimulation()
   const [colorByStatus, setColorByStatus] = useState(true)
+  const [storedBindings, setStoredBindings] = useLocalStorage<AnimationBinding[]>(
+    `twin-bindings-${ref ?? 'site'}`,
+    getDefaultBindings()
+  )
+  // Bindings match elements by name, so the demo's defaults mean nothing for an uploaded model.
+  const bindings = useMemo(
+    () =>
+      isDemoModel
+        ? storedBindings
+        : storedBindings.filter((item) => !item.id.startsWith('default-')),
+    [isDemoModel, storedBindings]
+  )
+
+  const isSimulation = dataSource === 'sim'
 
   const elements = useMemo(() => collectElements(scene), [scene])
   const visibleElements = useMemo(
     () => elements.filter((element) => !hiddenCategories.has(element.category)),
     [elements, hiddenCategories]
   )
-
   const selectedElement = elements.find((element) => element.id === selectedId) ?? null
 
-  // Recompute at most once a minute: readings only change that often.
-  const minuteBucket = Math.floor(timeline.cursor / 60_000)
-  const statusColors = useMemo(
-    () => (colorByStatus ? getStatusColors(elements, minuteBucket * 60_000) : null),
-    [colorByStatus, elements, minuteBucket]
+  // Live signals follow the timeline cursor; simulated signals come from the model.
+  const cursorSecond = Math.floor(timeline.cursor / 1000)
+  const liveSignals = useMemo(() => getLiveSignals(cursorSecond * 1000), [cursorSecond])
+  const liveSignalsRef = useRef<Signals>(liveSignals)
+  liveSignalsRef.current = liveSignals
+
+  const getSignals = useCallback(
+    () => (isSimulation ? simulation.signalsRef.current : liveSignalsRef.current),
+    [isSimulation, simulation.signalsRef]
   )
+
+  // React-side copy (throttled for the simulation) for panels and colours.
+  const signals = isSimulation
+    ? getSimSignals(simulation.snapshot.state, simulation.snapshot.controls)
+    : liveSignals
+  const colorsNow = colorByStatus ? getStatusColors(elements, signals) : null
+  // Colours only change when a reading crosses a threshold: key on the result so the viewer is not
+  // re-tinted on every throttled simulation update.
+  const colorKey = JSON.stringify(colorsNow)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const statusColors = useMemo(() => colorsNow, [colorKey])
+
+  // Switching to simulation shows its charts; switching back returns to the inventory.
+  useEffect(() => {
+    setBottomTab(isSimulation ? 'simulation' : 'inventory')
+  }, [isSimulation])
 
   const handleUploadFile = async (file: File) => {
     setIsLoadingModel(true)
@@ -56,6 +103,7 @@ export const SiteWorkspace = () => {
     try {
       setScene(await loadModelFile(file))
       setModelName(file.name)
+      setIsDemoModel(false)
       setSelectedId(null)
       setHiddenCategories(new Set())
     } catch (error) {
@@ -68,6 +116,7 @@ export const SiteWorkspace = () => {
   const handleUseDemo = () => {
     setScene(buildDemoStation())
     setModelName(DEMO_MODEL_NAME)
+    setIsDemoModel(true)
     setSelectedId(null)
     setModelError(null)
   }
@@ -80,6 +129,14 @@ export const SiteWorkspace = () => {
       return next
     })
   }
+
+  const handleBindingsChange = (next: AnimationBinding[]) =>
+    // On an uploaded model the demo defaults are hidden, not deleted: keep them for when the demo returns.
+    setStoredBindings(
+      isDemoModel
+        ? next
+        : [...storedBindings.filter((item) => item.id.startsWith('default-')), ...next]
+    )
 
   return (
     <ResizablePanelGroup orientation="horizontal" className="h-full w-full">
@@ -94,6 +151,9 @@ export const SiteWorkspace = () => {
           onToggleCategory={handleToggleCategory}
           onUploadFile={handleUploadFile}
           onUseDemo={handleUseDemo}
+          simulation={simulation}
+          dataSource={dataSource}
+          onDataSourceChange={setDataSource}
         />
       </ResizablePanel>
       <ResizableHandle withHandle />
@@ -101,14 +161,33 @@ export const SiteWorkspace = () => {
         <ResizablePanelGroup orientation="vertical" className="h-full w-full">
           <ResizablePanel id="twin-viewer" defaultSize="58%" minSize="25%">
             <div className="flex h-full w-full flex-col bg-surface-100">
-              <TimelineBar timeline={timeline} />
+              {isSimulation ? (
+                <SimulationBar simulation={simulation} />
+              ) : (
+                <TimelineBar timeline={timeline} />
+              )}
               <div className="relative min-h-0 flex-1">
                 <TwinViewer
                   scene={scene}
                   selectedId={selectedId}
                   colorOverrides={statusColors}
+                  bindings={bindings}
+                  getSignals={getSignals}
+                  showLabels={isDemoModel}
                   onSelect={setSelectedId}
                 />
+                {isSimulation && simulation.snapshot.alarms.length > 0 && (
+                  <div className="pointer-events-none absolute left-3 top-3 flex flex-col items-start gap-y-1.5">
+                    {simulation.snapshot.alarms.map((alarm) => (
+                      <div
+                        key={alarm}
+                        className="animate-pulse rounded-md border border-destructive bg-destructive-200 px-2.5 py-1 text-xs text-destructive"
+                      >
+                        ⚠ {alarm}
+                      </div>
+                    ))}
+                  </div>
+                )}
                 <div className="absolute bottom-3 left-3 flex flex-col gap-y-2 rounded-md border bg-surface-100/90 px-3 py-2 text-xs">
                   <label className="flex items-center gap-x-2">
                     <Switch checked={colorByStatus} onCheckedChange={setColorByStatus} />
@@ -132,18 +211,53 @@ export const SiteWorkspace = () => {
             </div>
           </ResizablePanel>
           <ResizableHandle withHandle />
-          <ResizablePanel id="twin-inventory" defaultSize="42%" minSize="15%">
-            <InventoryTable
-              elements={visibleElements}
-              selectedId={selectedId}
-              onSelect={setSelectedId}
-            />
+          <ResizablePanel id="twin-bottom" defaultSize="42%" minSize="15%">
+            <div className="flex h-full flex-col bg-surface-100">
+              <div className="flex gap-x-1 border-b px-3">
+                {(['inventory', 'simulation'] as const).map((tab) => (
+                  <button
+                    key={tab}
+                    type="button"
+                    onClick={() => setBottomTab(tab)}
+                    className={cn(
+                      'border-b-2 px-3 py-2 text-sm capitalize transition-colors',
+                      bottomTab === tab
+                        ? 'border-brand text-foreground'
+                        : 'border-transparent text-foreground-light hover:text-foreground'
+                    )}
+                  >
+                    {tab}
+                  </button>
+                ))}
+              </div>
+              <div className="min-h-0 flex-1">
+                {bottomTab === 'inventory' && (
+                  <InventoryTable
+                    elements={visibleElements}
+                    selectedId={selectedId}
+                    onSelect={setSelectedId}
+                  />
+                )}
+                {bottomTab === 'simulation' && (
+                  <SimulationResults
+                    history={simulation.snapshot.history}
+                    log={simulation.snapshot.log}
+                  />
+                )}
+              </div>
+            </div>
           </ResizablePanel>
         </ResizablePanelGroup>
       </ResizablePanel>
       <ResizableHandle withHandle />
       <ResizablePanel id="twin-properties" defaultSize={300} minSize={220} maxSize={480}>
-        <PropertiesPanel element={selectedElement} time={timeline.cursor} />
+        <PropertiesPanel
+          element={selectedElement}
+          signals={signals}
+          readingsLabel={isSimulation ? 'simulated' : new Date(timeline.cursor).toLocaleString()}
+          bindings={bindings}
+          onBindingsChange={handleBindingsChange}
+        />
       </ResizablePanel>
     </ResizablePanelGroup>
   )

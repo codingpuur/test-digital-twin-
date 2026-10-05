@@ -1,19 +1,7 @@
 import { ChevronLeft, ChevronRight, Minus, Pause, Play, Plus } from 'lucide-react'
-import {
-  Button,
-  cn,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from 'ui'
+import { Button, cn, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from 'ui'
 
-import {
-  TIMELINE_RANGE_OPTIONS,
-  TIMELINE_SPEEDS,
-  type TimelineSpeed,
-} from './Timeline.types'
+import { TIMELINE_RANGE_OPTIONS, TIMELINE_SPEEDS, type TimelineSpeed } from './Timeline.types'
 import { TimelineScale } from './TimelineScale'
 import type { TimelineController } from './useTimeline'
 
@@ -87,8 +75,20 @@ export const TimelineBar = ({ timeline, className }: TimelineBarProps) => {
             ))}
           </SelectContent>
         </Select>
-        <Button size="tiny" variant="text" aria-label="Zoom out" icon={<Minus size={14} />} onClick={() => zoom(2)} />
-        <Button size="tiny" variant="text" aria-label="Zoom in" icon={<Plus size={14} />} onClick={() => zoom(0.5)} />
+        <Button
+          size="tiny"
+          variant="text"
+          aria-label="Zoom out"
+          icon={<Minus size={14} />}
+          onClick={() => zoom(2)}
+        />
+        <Button
+          size="tiny"
+          variant="text"
+          aria-label="Zoom in"
+          icon={<Plus size={14} />}
+          onClick={() => zoom(0.5)}
+        />
         <Button
           size="tiny"
           variant="text"
@@ -96,7 +96,10 @@ export const TimelineBar = ({ timeline, className }: TimelineBarProps) => {
           icon={isPlaying ? <Pause size={14} /> : <Play size={14} />}
           onClick={togglePlay}
         />
-        <Select value={String(speed)} onValueChange={(value) => setSpeed(Number(value) as TimelineSpeed)}>
+        <Select
+          value={String(speed)}
+          onValueChange={(value) => setSpeed(Number(value) as TimelineSpeed)}
+        >
           <SelectTrigger className="w-16" size="tiny" aria-label="Playback speed">
             <SelectValue />
           </SelectTrigger>
@@ -110,7 +113,13 @@ export const TimelineBar = ({ timeline, className }: TimelineBarProps) => {
         </Select>
       </div>
       <div className="flex items-center gap-x-2">
-        <Button size="tiny" variant="outline" aria-label="Earlier" icon={<ChevronLeft size={14} />} onClick={() => pan(-1)} />
+        <Button
+          size="tiny"
+          variant="outline"
+          aria-label="Earlier"
+          icon={<ChevronLeft size={14} />}
+          onClick={() => pan(-1)}
+        />
         <TimelineScale
           className="flex-1"
           start={windowStart}
@@ -119,7 +128,13 @@ export const TimelineBar = ({ timeline, className }: TimelineBarProps) => {
           isLive={isLive}
           onCursorChange={setCursor}
         />
-        <Button size="tiny" variant="outline" aria-label="Later" icon={<ChevronRight size={14} />} onClick={() => pan(1)} />
+        <Button
+          size="tiny"
+          variant="outline"
+          aria-label="Later"
+          icon={<ChevronRight size={14} />}
+          onClick={() => pan(1)}
+        />
       </div>
     </div>
   )

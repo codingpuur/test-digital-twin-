@@ -65,7 +65,9 @@ export const loadIfcFile = async (file: File): Promise<THREE.Group> => {
     const expressId = flatMesh.expressID
     const line = api.GetLine(modelId, expressId)
     const name: string = line?.Name?.value || `Element ${expressId}`
-    const category = api.GetNameFromTypeCode(api.GetLineType(modelId, expressId)).replace(/^IFC/, '')
+    const category = api
+      .GetNameFromTypeCode(api.GetLineType(modelId, expressId))
+      .replace(/^IFC/, '')
 
     for (let i = 0; i < flatMesh.geometries.size(); i++) {
       const placed = flatMesh.geometries.get(i)
