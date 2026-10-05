@@ -38,6 +38,30 @@ Note: Studio ka code (`apps/studio`) monorepo-heavy hai (internal packages). Poo
 - Status colours: green ok / amber warn / red critical / blue info — charts ke liye colour-blind safe palette.
 - Tokens CSS variables mein (`--bg`, `--surface`, `--border`, `--accent`).
 
+## 4a. CORE FLOW (final direction — Tandem-style)
+
+### Part A — BUILD the twin (setup wizard, once per facility)
+1. **Create Facility** (top level, e.g. "Pumping Station A") — template choose (Pumping Station), location, timezone, units.
+2. **Upload 3D model** — IFC / GLB (later RVT/DWG). Viewer opens; element tree (Level → Room → Element) extracted from model.
+3. **Classification** — template ka hierarchy (Area → System → Asset type). Model elements ko asset types se map karo (auto-map by name/category rules + manual drag/assign + bulk).
+4. **Parameter config / mapping** — har asset type ka schema (Pump: flow, head, kW, rpm, run-hours, vibration…). Model properties → schema fields mapping; naye custom parameters add.
+5. **Linking** — asset ↔ (a) data tags/streams (SCADA/IoT), (b) documents/files, (c) maintenance (PM, work orders), (d) people/teams.
+6. **Ontology (relationships)** — assets ke beech typed relations: `partOf`, `locatedIn`, `feeds / fedBy` (flow direction), `drivenBy`, `monitoredBy`, `controls`, `upstreamOf/downstreamOf`. Graph editor + auto-suggest from pipe connectivity.
+7. **Publish** — validation checklist (unmapped elements, unlinked tags, orphan assets) → twin "Live".
+
+### Part B — USE the platform (daily operation)
+- **Home:** facility dashboard (health, flow, alarms, work orders due).
+- **3D live view:** asset par click → live values, specs, docs, open WOs, relations. Colour by status/metric.
+- **Ontology-powered actions:** "Pump P-101 alarm" → highlight upstream/downstream impact, affected assets, nearby sensors.
+- **Search/query:** "all pumps in Pump Hall with vibration > 7 mm/s" (ontology + live data filter).
+- **Alarm → Work order → Close** loop with asset history.
+- **Docs on asset:** manuals, drawings, warranty, certificates.
+- **Trends / reports / what-if simulation.**
+- **Users & roles:** Admin (builds twin), Engineer, Operator, Maintenance, Viewer.
+
+### Screens for Part A
+Facilities list → New Facility wizard → Model Upload & Viewer → Classification tree → Mapping table (model element ↔ asset type) → Parameter schema editor → Linking (tags / docs / people) → Ontology graph editor → Publish checklist.
+
 ## 5. Information architecture (Pumping Station)
 Left icon-rail + collapsible sidebar (Supabase jaisa), top bar: station switcher, time-range, ⌘K, alarm bell.
 
