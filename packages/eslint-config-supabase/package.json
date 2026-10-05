@@ -9,7 +9,7 @@
     "test": "vitest run"
   },
   "devDependencies": {
-    "@shadcn/lint": "0.1.5",
+    "@shadcn/lint": "0.2.0",
     "@tanstack/eslint-plugin-query": "^5.0.0",
     "@typescript-eslint/parser": "^8.48.0",
     "@typescript/native": "catalog:",
