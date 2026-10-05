@@ -782,7 +782,7 @@
     "prism-react-renderer": "^2.3.1",
     "radix-ui": "catalog:",
     "react": "catalog:",
-    "react-countdown": "^2.3.5",
+    "react-countdown": "^2.3.6",
     "react-dom": "catalog:",
     "react-error-boundary": "^4.0.12",
     "react-hook-form": "^7.71.2",
