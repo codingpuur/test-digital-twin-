@@ -73,6 +73,7 @@ import { Route as IntegrationsVercelInstallRouteImport } from './routes/integrat
 import { Route as OrgChar91_Char93SplatRouteImport } from './routes/org.[_].$'
 import { Route as ProjectRefIndexRouteImport } from './routes/project/$ref/index'
 import { Route as ProjectRefAdvisorsRouteImport } from './routes/project/$ref/advisors'
+import { Route as ProjectRefAssistantRouteImport } from './routes/project/$ref/assistant'
 import { Route as ProjectRefAuthRouteImport } from './routes/project/$ref/auth'
 import { Route as ProjectRefBranchesRouteImport } from './routes/project/$ref/branches'
 import { Route as ProjectRefComputeRouteImport } from './routes/project/$ref/compute'
@@ -659,6 +660,11 @@ const ProjectRefIndexRoute = ProjectRefIndexRouteImport.update({
 const ProjectRefAdvisorsRoute = ProjectRefAdvisorsRouteImport.update({
   id: '/advisors',
   path: '/advisors',
+  getParentRoute: () => ProjectRefRoute,
+} as any)
+const ProjectRefAssistantRoute = ProjectRefAssistantRouteImport.update({
+  id: '/assistant',
+  path: '/assistant',
   getParentRoute: () => ProjectRefRoute,
 } as any)
 const ProjectRefAuthRoute = ProjectRefAuthRouteImport.update({
@@ -2209,6 +2215,7 @@ export interface FileRoutesByFullPath {
   '/integrations/vercel/install': typeof IntegrationsVercelInstallRoute
   '/org/_/$': typeof OrgChar91_Char93SplatRoute
   '/project/$ref/advisors': typeof ProjectRefAdvisorsRouteWithChildren
+  '/project/$ref/assistant': typeof ProjectRefAssistantRoute
   '/project/$ref/auth': typeof ProjectRefAuthRouteWithChildren
   '/project/$ref/branches': typeof ProjectRefBranchesRouteWithChildren
   '/project/$ref/compute': typeof ProjectRefComputeRouteWithChildren
@@ -2532,6 +2539,7 @@ export interface FileRoutesByTo {
   '/integrations/vercel/install': typeof IntegrationsVercelInstallRoute
   '/org/_/$': typeof OrgChar91_Char93SplatRoute
   '/project/$ref/advisors': typeof ProjectRefAdvisorsRouteWithChildren
+  '/project/$ref/assistant': typeof ProjectRefAssistantRoute
   '/project/$ref/auth': typeof ProjectRefAuthRouteWithChildren
   '/project/$ref/database': typeof ProjectRefDatabaseRouteWithChildren
   '/project/$ref/merge': typeof ProjectRefMergeRoute
@@ -2847,6 +2855,7 @@ export interface FileRoutesById {
   '/integrations/vercel/install': typeof IntegrationsVercelInstallRoute
   '/org/_/$': typeof OrgChar91_Char93SplatRoute
   '/project/$ref/advisors': typeof ProjectRefAdvisorsRouteWithChildren
+  '/project/$ref/assistant': typeof ProjectRefAssistantRoute
   '/project/$ref/auth': typeof ProjectRefAuthRouteWithChildren
   '/project/$ref/branches': typeof ProjectRefBranchesRouteWithChildren
   '/project/$ref/compute': typeof ProjectRefComputeRouteWithChildren
@@ -3174,6 +3183,7 @@ export interface FileRouteTypes {
     | '/integrations/vercel/install'
     | '/org/_/$'
     | '/project/$ref/advisors'
+    | '/project/$ref/assistant'
     | '/project/$ref/auth'
     | '/project/$ref/branches'
     | '/project/$ref/compute'
@@ -3497,6 +3507,7 @@ export interface FileRouteTypes {
     | '/integrations/vercel/install'
     | '/org/_/$'
     | '/project/$ref/advisors'
+    | '/project/$ref/assistant'
     | '/project/$ref/auth'
     | '/project/$ref/database'
     | '/project/$ref/merge'
@@ -3811,6 +3822,7 @@ export interface FileRouteTypes {
     | '/integrations/vercel/install'
     | '/org/_/$'
     | '/project/$ref/advisors'
+    | '/project/$ref/assistant'
     | '/project/$ref/auth'
     | '/project/$ref/branches'
     | '/project/$ref/compute'
@@ -4654,6 +4666,13 @@ declare module '@tanstack/react-router' {
       path: '/advisors'
       fullPath: '/project/$ref/advisors'
       preLoaderRoute: typeof ProjectRefAdvisorsRouteImport
+      parentRoute: typeof ProjectRefRoute
+    }
+    '/project/$ref/assistant': {
+      id: '/project/$ref/assistant'
+      path: '/assistant'
+      fullPath: '/project/$ref/assistant'
+      preLoaderRoute: typeof ProjectRefAssistantRouteImport
       parentRoute: typeof ProjectRefRoute
     }
     '/project/$ref/auth': {
@@ -7136,6 +7155,7 @@ const ProjectRefStorageRouteWithChildren =
 
 interface ProjectRefRouteChildren {
   ProjectRefAdvisorsRoute: typeof ProjectRefAdvisorsRouteWithChildren
+  ProjectRefAssistantRoute: typeof ProjectRefAssistantRoute
   ProjectRefAuthRoute: typeof ProjectRefAuthRouteWithChildren
   ProjectRefBranchesRoute: typeof ProjectRefBranchesRouteWithChildren
   ProjectRefComputeRoute: typeof ProjectRefComputeRouteWithChildren
@@ -7158,6 +7178,7 @@ interface ProjectRefRouteChildren {
 
 const ProjectRefRouteChildren: ProjectRefRouteChildren = {
   ProjectRefAdvisorsRoute: ProjectRefAdvisorsRouteWithChildren,
+  ProjectRefAssistantRoute: ProjectRefAssistantRoute,
   ProjectRefAuthRoute: ProjectRefAuthRouteWithChildren,
   ProjectRefBranchesRoute: ProjectRefBranchesRouteWithChildren,
   ProjectRefComputeRoute: ProjectRefComputeRouteWithChildren,

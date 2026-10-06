@@ -8,6 +8,7 @@ import {
   FolderOpen,
   Network,
   PlayCircle,
+  Sparkles,
   Tag,
   Ticket,
   Users,
@@ -42,6 +43,7 @@ export const TwinLinks = () => {
   const router = useRouter()
   const moduleRoutes = getModuleRoutes()
   const iconProps = { size: ICON_SIZE, strokeWidth: ICON_STROKE_WIDTH }
+  const isAssistant = router.pathname.endsWith('/assistant')
   const activeModule = (router.query.module as string | undefined) ?? DEFAULT_TWIN_MODULE
 
   return (
@@ -56,11 +58,20 @@ export const TwinLinks = () => {
           }}
           active={false}
         />
+        <SideBarNavLink
+          route={{
+            key: 'assistant',
+            label: 'Assistant',
+            icon: <Sparkles {...iconProps} />,
+            link: `/project/${ref}/assistant`,
+          }}
+          active={isAssistant}
+        />
         {moduleRoutes.map((route) => (
           <SideBarNavLink
             key={route.key}
             route={{ ...route, link: `/project/${ref}?module=${route.key}` }}
-            active={activeModule === route.key}
+            active={!isAssistant && activeModule === route.key}
           />
         ))}
       </SidebarMenu>
