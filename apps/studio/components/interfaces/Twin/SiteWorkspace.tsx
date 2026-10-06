@@ -11,6 +11,7 @@ import { ImportDiffModal } from './ImportDiffModal'
 import { InventoryTable } from './InventoryTable'
 import { collectElements, loadModelFile } from './model-loaders'
 import { ModulePanel } from './ModulePanel'
+import { PanelToggles } from './PanelToggles'
 import { PropertiesPanel } from './PropertiesPanel'
 import type { AnimationBinding } from './simulation/animation.types'
 import { getDefaultBindings } from './simulation/default-bindings'
@@ -22,6 +23,7 @@ import { useSimulation } from './simulation/useSimulation'
 import { getStatusColors, getUnlinkedColors, STATUS_COLORS } from './status-colors'
 import { applyStreamColors, getStreamReadings, groupStreamsByTag } from './stream-bridge'
 import { DEFAULT_TWIN_MODULE } from './twin.types'
+import { useCollapsiblePanel } from './useCollapsiblePanel'
 import { useTwinStore } from './useTwinStore'
 import { TimelineBar } from '@/components/ui/Timeline/TimelineBar'
 import { useTimeline } from '@/components/ui/Timeline/useTimeline'
@@ -47,6 +49,9 @@ export const SiteWorkspace = () => {
   const [modelError, setModelError] = useState<string | null>(null)
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const store = useTwinStore(ref)
+  const leftPanel = useCollapsiblePanel()
+  const rightPanel = useCollapsiblePanel()
+  const bottomPanel = useCollapsiblePanel()
   const streamsQuery = useTwinStreamsQuery(ref)
   // Revision of the saved model already shown, so restoring (or our own upload) is not re-applied.
   const shownRevision = useRef<number | null>(null)
@@ -193,7 +198,13 @@ export const SiteWorkspace = () => {
   return (
     <>
       <ResizablePanelGroup orientation="horizontal" className="h-full w-full">
-        <ResizablePanel id="twin-module-panel" defaultSize={300} minSize={220} maxSize={480}>
+        <ResizablePanel
+          id="twin-module-panel"
+          defaultSize={300}
+          minSize={220}
+          maxSize={480}
+          {...leftPanel.panelProps}
+        >
           <ModulePanel
             moduleId={moduleId}
             elements={elements}
@@ -225,6 +236,7 @@ export const SiteWorkspace = () => {
                   <TimelineBar timeline={timeline} />
                 )}
                 <div className="relative min-h-0 flex-1">
+                  <PanelToggles left={leftPanel} right={rightPanel} bottom={bottomPanel} />
                   <TwinViewer
                     scene={scene}
                     selectedId={selectedId}
@@ -269,7 +281,12 @@ export const SiteWorkspace = () => {
               </div>
             </ResizablePanel>
             <ResizableHandle withHandle />
-            <ResizablePanel id="twin-bottom" defaultSize="42%" minSize="15%">
+            <ResizablePanel
+              id="twin-bottom"
+              defaultSize="42%"
+              minSize="15%"
+              {...bottomPanel.panelProps}
+            >
               <div className="flex h-full flex-col bg-surface-100">
                 <div className="flex gap-x-1 border-b px-3">
                   {(['inventory', 'simulation'] as const).map((tab) => (
@@ -308,7 +325,13 @@ export const SiteWorkspace = () => {
           </ResizablePanelGroup>
         </ResizablePanel>
         <ResizableHandle withHandle />
-        <ResizablePanel id="twin-properties" defaultSize={300} minSize={220} maxSize={480}>
+        <ResizablePanel
+          id="twin-properties"
+          defaultSize={300}
+          minSize={220}
+          maxSize={480}
+          {...rightPanel.panelProps}
+        >
           <PropertiesPanel
             element={selectedElement}
             signals={signals}
