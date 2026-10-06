@@ -70,10 +70,10 @@ export const FilesPanel = ({
     <EmptyStatePresentational
       icon={FileUp}
       title="3D model"
-      description="Upload a GLB, glTF or IFC file. It is saved with the site and its elements become assets."
+      description="Upload an IFC, GLB, glTF or STEP (SolidWorks) file. It is saved with the site and its elements become assets."
     >
       <FileButton
-        accept=".glb,.gltf,.ifc"
+        accept=".glb,.gltf,.ifc,.step,.stp,.iges,.igs"
         loading={isLoadingModel}
         variant="primary"
         onFile={onUploadModel}

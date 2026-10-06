@@ -1,6 +1,7 @@
 import * as THREE from 'three'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 
+import { loadStepFile } from './step-loader'
 import type { TwinElement } from './twin.types'
 import { BASE_PATH } from '@/lib/constants'
 
@@ -152,9 +153,25 @@ export const loadIfcFile = async (file: File): Promise<THREE.Group> => {
   return group
 }
 
-export const loadModelFile = (file: File) => {
+/** Parts and meshes often share a name; tags are the match key, so make them unique. */
+const makeTagsUnique = (root: THREE.Object3D) => {
+  const seen = new Map<string, number>()
+  root.traverse((object) => {
+    const twin = object.userData.twin as TwinElement | undefined
+    if (!twin?.tag) return
+    const count = (seen.get(twin.tag) ?? 0) + 1
+    seen.set(twin.tag, count)
+    if (count > 1) twin.tag = `${twin.tag} (${count})`
+  })
+  return root
+}
+
+export const loadModelFile = async (file: File) => {
   const extension = file.name.split('.').pop()?.toLowerCase()
-  if (extension === 'ifc') return loadIfcFile(file)
-  if (extension === 'glb' || extension === 'gltf') return loadGlbFile(file)
-  return Promise.reject(new Error('Unsupported file type. Upload a GLB, glTF or IFC file.'))
+  if (extension === 'ifc') return makeTagsUnique(await loadIfcFile(file))
+  if (extension === 'glb' || extension === 'gltf') return makeTagsUnique(await loadGlbFile(file))
+  if (extension && ['step', 'stp', 'iges', 'igs'].includes(extension)) {
+    return makeTagsUnique(await loadStepFile(file))
+  }
+  throw new Error('Unsupported file type. Upload a GLB, glTF, IFC or STEP file.')
 }

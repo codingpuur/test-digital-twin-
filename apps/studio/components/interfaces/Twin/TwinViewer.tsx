@@ -103,7 +103,7 @@ export const TwinViewer = ({
           fadeDistance={45}
           infiniteGrid
         />
-        <Bounds fit observe margin={1.3}>
+        <Bounds key={scene.uuid} fit observe margin={1.3}>
           <primitive object={scene} onClick={handleClick} />
         </Bounds>
         {getSignals && (
