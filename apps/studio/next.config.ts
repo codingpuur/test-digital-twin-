@@ -55,6 +55,8 @@ const marketplaceApiProtocol: 'http' | 'https' | null =
 const nextConfig = {
   // Stop `next dev` rewriting AGENTS.md on every start.
   agentRules: false,
+  // Hide the dev-only Next.js badge (it shows up in product screenshots).
+  devIndicators: false,
   basePath: process.env.NEXT_PUBLIC_BASE_PATH,
   assetPrefix: getAssetPrefix(),
   output: 'standalone',

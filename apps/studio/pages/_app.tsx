@@ -237,15 +237,15 @@ function CustomApp({ Component, pageProps }: AppPropsWithLayout) {
                                   <AppearanceSettingsProvider />
                                 </CommandProvider>
                               </AiAssistantStateContextProvider>
-                              <DevToolbar extraTabs={devToolbarExtraTabs} />
-                              <DevToolbarTrigger />
+                              {!IS_MOCK_BACKEND && <DevToolbar extraTabs={devToolbarExtraTabs} />}
+                              {!IS_MOCK_BACKEND && <DevToolbarTrigger />}
                             </DevToolbarProvider>
                           </ThemeProvider>
                         </RouteValidationWrapper>
                       </TooltipProvider>
                       <Telemetry />
                       <ToastErrorTracker />
-                      {!isTestEnv && (
+                      {!isTestEnv && !IS_MOCK_BACKEND && (
                         <ReactQueryDevtools initialIsOpen={false} buttonPosition="bottom-left" />
                       )}
                     </TimestampInfoTimezoneBridge>
