@@ -1,4 +1,4 @@
-# Twin Platform
+# iPUMP Sense
 
 A digital twin platform for pumping stations: upload a 3D model, connect live data, and
 monitor, replay and simulate the station in one place.

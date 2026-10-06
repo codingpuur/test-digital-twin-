@@ -1,4 +1,4 @@
-# Digital Twin Platform — UI Plan (UI-only, mock data)
+# iPUMP Sense: product plan (early notes, see README for current status)
 
 Domain: **Pumping Station digital twin**.
 Design = **Supabase Studio ki premium feel** + **Netdata ke real-time monitoring features**.
