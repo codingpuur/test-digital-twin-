@@ -1,11 +1,14 @@
 import { MousePointerClick } from 'lucide-react'
-import { Badge } from 'ui'
+import { useState } from 'react'
+import { Badge, Button } from 'ui'
 import { EmptyStatePresentational } from 'ui-patterns/EmptyStatePresentational'
 
+import { AssetEditor } from './AssetEditor'
 import type { AnimationBinding } from './simulation/animation.types'
 import { BindingsSection } from './simulation/BindingsSection'
 import { getElementReadings, type Signals } from './simulation/signals'
 import type { TwinElement } from './twin.types'
+import type { EditableValues } from '@/lib/twin/assets'
 
 type PropertiesPanelProps = {
   element: TwinElement | null
@@ -14,6 +17,9 @@ type PropertiesPanelProps = {
   readingsLabel: string
   bindings: AnimationBinding[]
   onBindingsChange: (bindings: AnimationBinding[]) => void
+  isSavingEdits: boolean
+  onSaveEdits: (assetId: string, values: EditableValues) => Promise<unknown>
+  onRevertEdits: (assetId: string) => Promise<unknown>
 }
 
 const PROPERTY_FIELDS: { key: keyof TwinElement; label: string }[] = [
@@ -32,7 +38,11 @@ export const PropertiesPanel = ({
   readingsLabel,
   bindings,
   onBindingsChange,
+  isSavingEdits,
+  onSaveEdits,
+  onRevertEdits,
 }: PropertiesPanelProps) => {
+  const [isEditing, setIsEditing] = useState(false)
   const readings = element ? getElementReadings(element, signals) : []
 
   return (
@@ -51,14 +61,61 @@ export const PropertiesPanel = ({
 
         {element && (
           <div className="flex flex-col gap-y-6">
-            <dl className="flex flex-col gap-y-3 text-sm">
-              {PROPERTY_FIELDS.map(({ key, label }) => (
-                <div key={key} className="flex flex-col">
-                  <dt className="text-xs text-foreground-lighter">{label}</dt>
-                  <dd className="break-all">{(element[key] as string) || '-'}</dd>
-                </div>
-              ))}
-            </dl>
+            {isEditing && element.assetId && (
+              <AssetEditor
+                // Remount per element so the form never shows the previous one's values.
+                key={element.id}
+                values={{
+                  name: element.displayName ?? element.name,
+                  category: element.category,
+                  level: element.level,
+                  room: element.room,
+                  system: element.system,
+                }}
+                isSaving={isSavingEdits}
+                onSave={async (values) => {
+                  await onSaveEdits(element.assetId!, values)
+                  setIsEditing(false)
+                }}
+                onCancel={() => setIsEditing(false)}
+              />
+            )}
+            {!isEditing && (
+              <dl className="flex flex-col gap-y-3 text-sm">
+                {PROPERTY_FIELDS.map(({ key, label }) => (
+                  <div key={key} className="flex flex-col">
+                    <dt className="text-xs text-foreground-lighter">{label}</dt>
+                    <dd className="break-all">
+                      {key === 'name'
+                        ? (element.displayName ?? element.name)
+                        : (element[key] as string) || '-'}
+                    </dd>
+                  </div>
+                ))}
+                {Object.entries(element.properties ?? {}).map(([label, value]) => (
+                  <div key={label} className="flex flex-col">
+                    <dt className="text-xs text-foreground-lighter">{label}</dt>
+                    <dd className="break-all">{value}</dd>
+                  </div>
+                ))}
+                {element.assetId && (
+                  <div className="flex gap-x-2">
+                    <Button size="tiny" variant="default" onClick={() => setIsEditing(true)}>
+                      Edit
+                    </Button>
+                    {element.isEdited && (
+                      <Button
+                        size="tiny"
+                        variant="default"
+                        onClick={() => onRevertEdits(element.assetId!)}
+                      >
+                        Revert to imported
+                      </Button>
+                    )}
+                  </div>
+                )}
+              </dl>
+            )}
 
             <div className="flex flex-col gap-y-2">
               <h3 className="text-xs uppercase tracking-wide text-foreground-light">

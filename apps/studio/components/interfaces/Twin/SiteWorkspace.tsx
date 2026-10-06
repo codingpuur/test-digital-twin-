@@ -5,7 +5,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type * as THREE from 'three'
 import { cn, ResizableHandle, ResizablePanel, ResizablePanelGroup, Switch } from 'ui'
 
+import { applyAssets } from './asset-bridge'
 import { buildDemoStation } from './demo-station'
+import { ImportDiffModal } from './ImportDiffModal'
 import { InventoryTable } from './InventoryTable'
 import { collectElements, loadModelFile } from './model-loaders'
 import { ModulePanel } from './ModulePanel'
@@ -19,6 +21,7 @@ import { SimulationResults } from './simulation/SimulationResults'
 import { useSimulation } from './simulation/useSimulation'
 import { getStatusColors, STATUS_COLORS } from './status-colors'
 import { DEFAULT_TWIN_MODULE } from './twin.types'
+import { useTwinStore } from './useTwinStore'
 import { TimelineBar } from '@/components/ui/Timeline/TimelineBar'
 import { useTimeline } from '@/components/ui/Timeline/useTimeline'
 import { useLocalStorage } from '@/hooks/misc/useLocalStorage'
@@ -41,6 +44,9 @@ export const SiteWorkspace = () => {
   const [isLoadingModel, setIsLoadingModel] = useState(false)
   const [modelError, setModelError] = useState<string | null>(null)
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  const store = useTwinStore(ref)
+  // Revision of the saved model already shown, so restoring (or our own upload) is not re-applied.
+  const shownRevision = useRef<number | null>(null)
   const [hiddenCategories, setHiddenCategories] = useState<Set<string>>(new Set())
   const [dataSource, setDataSource] = useState<DataSource>('live')
   const [bottomTab, setBottomTab] = useState<BottomTab>('inventory')
@@ -63,7 +69,12 @@ export const SiteWorkspace = () => {
 
   const isSimulation = dataSource === 'sim'
 
-  const elements = useMemo(() => collectElements(scene), [scene])
+  const sceneElements = useMemo(() => collectElements(scene), [scene])
+  // The demo has no asset records; an uploaded model is overlaid with the site's saved assets.
+  const elements = useMemo(
+    () => (isDemoModel ? sceneElements : applyAssets(sceneElements, store.assets)),
+    [isDemoModel, sceneElements, store.assets]
+  )
   const visibleElements = useMemo(
     () => elements.filter((element) => !hiddenCategories.has(element.category)),
     [elements, hiddenCategories]
@@ -97,20 +108,45 @@ export const SiteWorkspace = () => {
     setBottomTab(isSimulation ? 'simulation' : 'inventory')
   }, [isSimulation])
 
+  const showModel = (nextScene: THREE.Object3D, name: string, revision: number | null) => {
+    shownRevision.current = revision
+    setScene(nextScene)
+    setModelName(name)
+    setIsDemoModel(false)
+    setSelectedId(null)
+    setHiddenCategories(new Set())
+  }
+
+  // Bring the site's saved model back after a refresh or when opening the site later.
+  useEffect(() => {
+    const { model, savedFile } = store
+    if (!model || !savedFile || shownRevision.current === model.revision) return
+    shownRevision.current = model.revision
+    loadModelFile(savedFile)
+      .then((loaded) => showModel(loaded, model.name, model.revision))
+      .catch((error) =>
+        setModelError(error instanceof Error ? error.message : 'Could not load the saved model')
+      )
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [store.model, store.savedFile])
+
   const handleUploadFile = async (file: File) => {
     setIsLoadingModel(true)
     setModelError(null)
     try {
-      setScene(await loadModelFile(file))
-      setModelName(file.name)
-      setIsDemoModel(false)
-      setSelectedId(null)
-      setHiddenCategories(new Set())
+      const loaded = await loadModelFile(file)
+      const revision = await store.requestModelImport(file, loaded)
+      if (revision !== null) showModel(loaded, file.name, revision)
     } catch (error) {
       setModelError(error instanceof Error ? error.message : 'Could not load this model')
     } finally {
       setIsLoadingModel(false)
     }
+  }
+
+  const handleConfirmImport = async () => {
+    const applied = await store.confirmPending()
+    if (applied) showModel(applied.scene, applied.file.name, applied.revision)
   }
 
   const handleUseDemo = () => {
@@ -139,126 +175,143 @@ export const SiteWorkspace = () => {
     )
 
   return (
-    <ResizablePanelGroup orientation="horizontal" className="h-full w-full">
-      <ResizablePanel id="twin-module-panel" defaultSize={300} minSize={220} maxSize={480}>
-        <ModulePanel
-          moduleId={moduleId}
-          elements={elements}
-          modelName={modelName}
-          isLoadingModel={isLoadingModel}
-          modelError={modelError}
-          hiddenCategories={hiddenCategories}
-          onToggleCategory={handleToggleCategory}
-          onUploadFile={handleUploadFile}
-          onUseDemo={handleUseDemo}
-          simulation={simulation}
-          dataSource={dataSource}
-          onDataSourceChange={setDataSource}
-        />
-      </ResizablePanel>
-      <ResizableHandle withHandle />
-      <ResizablePanel id="twin-main">
-        <ResizablePanelGroup orientation="vertical" className="h-full w-full">
-          <ResizablePanel id="twin-viewer" defaultSize="58%" minSize="25%">
-            <div className="flex h-full w-full flex-col bg-surface-100">
-              {isSimulation ? (
-                <SimulationBar simulation={simulation} />
-              ) : (
-                <TimelineBar timeline={timeline} />
-              )}
-              <div className="relative min-h-0 flex-1">
-                <TwinViewer
-                  scene={scene}
-                  selectedId={selectedId}
-                  colorOverrides={statusColors}
-                  bindings={bindings}
-                  getSignals={getSignals}
-                  showLabels={isDemoModel}
-                  onSelect={setSelectedId}
-                />
-                {isSimulation && simulation.snapshot.alarms.length > 0 && (
-                  <div className="pointer-events-none absolute left-3 top-3 flex flex-col items-start gap-y-1.5">
-                    {simulation.snapshot.alarms.map((alarm) => (
-                      <div
-                        key={alarm}
-                        className="animate-pulse rounded-md border border-destructive bg-destructive-200 px-2.5 py-1 text-xs text-destructive"
-                      >
-                        ⚠ {alarm}
-                      </div>
-                    ))}
-                  </div>
+    <>
+      <ResizablePanelGroup orientation="horizontal" className="h-full w-full">
+        <ResizablePanel id="twin-module-panel" defaultSize={300} minSize={220} maxSize={480}>
+          <ModulePanel
+            moduleId={moduleId}
+            elements={elements}
+            modelName={modelName}
+            modelRevision={isDemoModel ? undefined : store.model?.revision}
+            isImportingCsv={store.isImportingCsv}
+            csvResult={store.csvResult}
+            csvError={store.csvError}
+            onUploadCsv={store.importCsv}
+            isLoadingModel={isLoadingModel}
+            modelError={modelError}
+            hiddenCategories={hiddenCategories}
+            onToggleCategory={handleToggleCategory}
+            onUploadFile={handleUploadFile}
+            onUseDemo={handleUseDemo}
+            simulation={simulation}
+            dataSource={dataSource}
+            onDataSourceChange={setDataSource}
+          />
+        </ResizablePanel>
+        <ResizableHandle withHandle />
+        <ResizablePanel id="twin-main">
+          <ResizablePanelGroup orientation="vertical" className="h-full w-full">
+            <ResizablePanel id="twin-viewer" defaultSize="58%" minSize="25%">
+              <div className="flex h-full w-full flex-col bg-surface-100">
+                {isSimulation ? (
+                  <SimulationBar simulation={simulation} />
+                ) : (
+                  <TimelineBar timeline={timeline} />
                 )}
-                <div className="absolute bottom-3 left-3 flex flex-col gap-y-2 rounded-md border bg-surface-100/90 px-3 py-2 text-xs">
-                  <label className="flex items-center gap-x-2">
-                    <Switch checked={colorByStatus} onCheckedChange={setColorByStatus} />
-                    Colour by status
-                  </label>
-                  {colorByStatus && (
-                    <div className="flex items-center gap-x-3 text-foreground-light">
-                      {(['Normal', 'Warning', 'Unlinked'] as const).map((status) => (
-                        <span key={status} className="flex items-center gap-x-1">
-                          <span
-                            className="inline-block size-2 rounded-full"
-                            style={{ background: STATUS_COLORS[status] }}
-                          />
-                          {status}
-                        </span>
+                <div className="relative min-h-0 flex-1">
+                  <TwinViewer
+                    scene={scene}
+                    selectedId={selectedId}
+                    colorOverrides={statusColors}
+                    bindings={bindings}
+                    getSignals={getSignals}
+                    showLabels={isDemoModel}
+                    onSelect={setSelectedId}
+                  />
+                  {isSimulation && simulation.snapshot.alarms.length > 0 && (
+                    <div className="pointer-events-none absolute left-3 top-3 flex flex-col items-start gap-y-1.5">
+                      {simulation.snapshot.alarms.map((alarm) => (
+                        <div
+                          key={alarm}
+                          className="animate-pulse rounded-md border border-destructive bg-destructive-200 px-2.5 py-1 text-xs text-destructive"
+                        >
+                          ⚠ {alarm}
+                        </div>
                       ))}
                     </div>
                   )}
+                  <div className="absolute bottom-3 left-3 flex flex-col gap-y-2 rounded-md border bg-surface-100/90 px-3 py-2 text-xs">
+                    <label className="flex items-center gap-x-2">
+                      <Switch checked={colorByStatus} onCheckedChange={setColorByStatus} />
+                      Colour by status
+                    </label>
+                    {colorByStatus && (
+                      <div className="flex items-center gap-x-3 text-foreground-light">
+                        {(['Normal', 'Warning', 'Unlinked'] as const).map((status) => (
+                          <span key={status} className="flex items-center gap-x-1">
+                            <span
+                              className="inline-block size-2 rounded-full"
+                              style={{ background: STATUS_COLORS[status] }}
+                            />
+                            {status}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
-          </ResizablePanel>
-          <ResizableHandle withHandle />
-          <ResizablePanel id="twin-bottom" defaultSize="42%" minSize="15%">
-            <div className="flex h-full flex-col bg-surface-100">
-              <div className="flex gap-x-1 border-b px-3">
-                {(['inventory', 'simulation'] as const).map((tab) => (
-                  <button
-                    key={tab}
-                    type="button"
-                    onClick={() => setBottomTab(tab)}
-                    className={cn(
-                      'border-b-2 px-3 py-2 text-sm capitalize transition-colors',
-                      bottomTab === tab
-                        ? 'border-brand text-foreground'
-                        : 'border-transparent text-foreground-light hover:text-foreground'
-                    )}
-                  >
-                    {tab}
-                  </button>
-                ))}
+            </ResizablePanel>
+            <ResizableHandle withHandle />
+            <ResizablePanel id="twin-bottom" defaultSize="42%" minSize="15%">
+              <div className="flex h-full flex-col bg-surface-100">
+                <div className="flex gap-x-1 border-b px-3">
+                  {(['inventory', 'simulation'] as const).map((tab) => (
+                    <button
+                      key={tab}
+                      type="button"
+                      onClick={() => setBottomTab(tab)}
+                      className={cn(
+                        'border-b-2 px-3 py-2 text-sm capitalize transition-colors',
+                        bottomTab === tab
+                          ? 'border-brand text-foreground'
+                          : 'border-transparent text-foreground-light hover:text-foreground'
+                      )}
+                    >
+                      {tab}
+                    </button>
+                  ))}
+                </div>
+                <div className="min-h-0 flex-1">
+                  {bottomTab === 'inventory' && (
+                    <InventoryTable
+                      elements={visibleElements}
+                      selectedId={selectedId}
+                      onSelect={setSelectedId}
+                    />
+                  )}
+                  {bottomTab === 'simulation' && (
+                    <SimulationResults
+                      history={simulation.snapshot.history}
+                      log={simulation.snapshot.log}
+                    />
+                  )}
+                </div>
               </div>
-              <div className="min-h-0 flex-1">
-                {bottomTab === 'inventory' && (
-                  <InventoryTable
-                    elements={visibleElements}
-                    selectedId={selectedId}
-                    onSelect={setSelectedId}
-                  />
-                )}
-                {bottomTab === 'simulation' && (
-                  <SimulationResults
-                    history={simulation.snapshot.history}
-                    log={simulation.snapshot.log}
-                  />
-                )}
-              </div>
-            </div>
-          </ResizablePanel>
-        </ResizablePanelGroup>
-      </ResizablePanel>
-      <ResizableHandle withHandle />
-      <ResizablePanel id="twin-properties" defaultSize={300} minSize={220} maxSize={480}>
-        <PropertiesPanel
-          element={selectedElement}
-          signals={signals}
-          readingsLabel={isSimulation ? 'simulated' : new Date(timeline.cursor).toLocaleString()}
-          bindings={bindings}
-          onBindingsChange={handleBindingsChange}
-        />
-      </ResizablePanel>
-    </ResizablePanelGroup>
+            </ResizablePanel>
+          </ResizablePanelGroup>
+        </ResizablePanel>
+        <ResizableHandle withHandle />
+        <ResizablePanel id="twin-properties" defaultSize={300} minSize={220} maxSize={480}>
+          <PropertiesPanel
+            element={selectedElement}
+            signals={signals}
+            readingsLabel={isSimulation ? 'simulated' : new Date(timeline.cursor).toLocaleString()}
+            bindings={bindings}
+            onBindingsChange={handleBindingsChange}
+            isSavingEdits={store.isSavingEdits}
+            onSaveEdits={store.saveEdits}
+            onRevertEdits={store.revertEdits}
+          />
+        </ResizablePanel>
+      </ResizablePanelGroup>
+      <ImportDiffModal
+        diff={store.pending?.diff ?? null}
+        fileName={store.pending?.file.name ?? ''}
+        isLoading={store.isCommitting}
+        onConfirm={handleConfirmImport}
+        onCancel={store.cancelPending}
+      />
+    </>
   )
 }

@@ -1,0 +1,103 @@
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+
+import { twinFetch, twinFetchJson } from './twin-api'
+import type {
+  AssetFields,
+  AssetImportRow,
+  ImportDiff,
+  ImportMode,
+  TwinAsset,
+} from '@/lib/twin/assets'
+
+export type TwinModelMeta = {
+  name: string
+  format: string
+  size: number
+  revision: number
+  uploaded_at: string
+}
+
+export const twinKeys = {
+  model: (ref: string | undefined) => ['twin', ref, 'model'] as const,
+  modelFile: (ref: string | undefined, revision: number | undefined) =>
+    ['twin', ref, 'model-file', revision] as const,
+  assets: (ref: string | undefined) => ['twin', ref, 'assets'] as const,
+}
+
+export const useTwinModelQuery = (ref: string | undefined) =>
+  useQuery({
+    queryKey: twinKeys.model(ref),
+    queryFn: async () =>
+      (await twinFetchJson<{ model: TwinModelMeta | null }>(`/${ref}/model`)).model,
+    enabled: Boolean(ref),
+  })
+
+/** The model file as a browser `File`, so it goes through the same loaders as a fresh upload. */
+export const useTwinModelFileQuery = (
+  ref: string | undefined,
+  model: TwinModelMeta | null | undefined
+) =>
+  useQuery({
+    queryKey: twinKeys.modelFile(ref, model?.revision),
+    queryFn: async () => {
+      const blob = await (await twinFetch(`/${ref}/model-file`)).blob()
+      return new File([blob], model!.name)
+    },
+    enabled: Boolean(ref) && Boolean(model),
+    staleTime: Infinity,
+  })
+
+export const useTwinAssetsQuery = (ref: string | undefined) =>
+  useQuery({
+    queryKey: twinKeys.assets(ref),
+    queryFn: async () => (await twinFetchJson<{ assets: TwinAsset[] }>(`/${ref}/assets`)).assets,
+    enabled: Boolean(ref),
+  })
+
+export const useUploadTwinModelMutation = (ref: string | undefined) => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (file: File) => {
+      const response = await twinFetch(`/${ref}/model`, {
+        method: 'PUT',
+        headers: { 'X-File-Name': encodeURIComponent(file.name) },
+        body: file,
+      })
+      return ((await response.json()) as { model: TwinModelMeta }).model
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: twinKeys.model(ref) }),
+  })
+}
+
+export type ImportAssetsVariables = {
+  rows: AssetImportRow[]
+  mode: ImportMode
+  source: string
+  dryRun?: boolean
+}
+
+export const useImportTwinAssetsMutation = (ref: string | undefined) => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (variables: ImportAssetsVariables) =>
+      twinFetchJson<{ diff: ImportDiff; assets: TwinAsset[] }>(`/${ref}/assets`, {
+        method: 'POST',
+        body: JSON.stringify(variables),
+      }),
+    onSuccess: (_data, variables) => {
+      if (!variables.dryRun) queryClient.invalidateQueries({ queryKey: twinKeys.assets(ref) })
+    },
+  })
+}
+
+export const useUpdateTwinAssetMutation = (ref: string | undefined) => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, override }: { id: string; override: Partial<AssetFields> }) =>
+      twinFetchJson<{ asset: TwinAsset }>(`/${ref}/assets/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ override }),
+      }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: twinKeys.assets(ref) }),
+  })
+}

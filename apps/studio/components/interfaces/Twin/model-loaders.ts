@@ -30,6 +30,7 @@ export const prepareLoadedModel = (root: THREE.Object3D, source: string) => {
       system: '',
       source,
       guid: object.uuid,
+      tag: name,
     } satisfies TwinElement
   })
   return root
@@ -55,7 +56,11 @@ export const loadGlbFile = async (file: File): Promise<THREE.Group> => {
 type WebIfcModule = typeof import('web-ifc')
 
 /** Maps each element to the storey (level) and space (room) it sits in, from IfcRelContainedInSpatialStructure. */
-const readSpatialStructure = (WebIFC: WebIfcModule, api: InstanceType<WebIfcModule['IfcAPI']>, modelId: number) => {
+const readSpatialStructure = (
+  WebIFC: WebIfcModule,
+  api: InstanceType<WebIfcModule['IfcAPI']>,
+  modelId: number
+) => {
   const levelByElement = new Map<number, string>()
   const roomByElement = new Map<number, string>()
   const relations = api.GetLineIDsWithType(modelId, WebIFC.IFCRELCONTAINEDINSPATIALSTRUCTURE)
@@ -65,7 +70,8 @@ const readSpatialStructure = (WebIFC: WebIfcModule, api: InstanceType<WebIfcModu
     const structureId: number | undefined = relation?.RelatingStructure?.value
     if (structureId === undefined) continue
     const label: string = api.GetLine(modelId, structureId)?.Name?.value ?? ''
-    const target = api.GetLineType(modelId, structureId) === WebIFC.IFCSPACE ? roomByElement : levelByElement
+    const target =
+      api.GetLineType(modelId, structureId) === WebIFC.IFCSPACE ? roomByElement : levelByElement
     const related: { value: number }[] = relation.RelatedElements ?? []
     related.forEach((reference) => target.set(reference.value, label))
   }
@@ -109,6 +115,7 @@ export const loadIfcFile = async (file: File): Promise<THREE.Group> => {
       system: '',
       source: file.name,
       guid: line?.GlobalId?.value ?? String(expressId),
+      tag: line?.Tag?.value || name,
     } satisfies TwinElement
 
     for (let i = 0; i < flatMesh.geometries.size(); i++) {

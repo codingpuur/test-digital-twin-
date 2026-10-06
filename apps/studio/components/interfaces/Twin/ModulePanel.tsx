@@ -1,17 +1,23 @@
-import { Boxes, FileUp } from 'lucide-react'
-import { useRef } from 'react'
-import { Button, Checkbox, cn } from 'ui'
+import { Boxes } from 'lucide-react'
+import { Checkbox, cn } from 'ui'
 import { EmptyStatePresentational } from 'ui-patterns/EmptyStatePresentational'
 
 import { DashboardsPanel } from './dashboards/DashboardsPanel'
+import { FilesPanel } from './FilesPanel'
 import { SimulationPanel, type DataSource } from './simulation/SimulationPanel'
 import type { SimulationController } from './simulation/useSimulation'
 import { TWIN_MODULES, type TwinElement } from './twin.types'
+import type { ImportDiff } from '@/lib/twin/assets'
 
 type ModulePanelProps = {
   moduleId: string
   elements: TwinElement[]
   modelName: string
+  modelRevision?: number
+  isImportingCsv: boolean
+  csvResult: { fileName: string; diff: ImportDiff } | null
+  csvError: string | null
+  onUploadCsv: (file: File) => void
   isLoadingModel: boolean
   modelError: string | null
   hiddenCategories: Set<string>
@@ -35,6 +41,11 @@ export const ModulePanel = ({
   moduleId,
   elements,
   modelName,
+  modelRevision,
+  isImportingCsv,
+  csvResult,
+  csvError,
+  onUploadCsv,
   isLoadingModel,
   modelError,
   hiddenCategories,
@@ -45,7 +56,6 @@ export const ModulePanel = ({
   dataSource,
   onDataSourceChange,
 }: ModulePanelProps) => {
-  const fileInputRef = useRef<HTMLInputElement>(null)
   const label = TWIN_MODULES.find((item) => item.id === moduleId)?.label ?? 'Module'
   const categories = countByCategory(elements)
 
@@ -67,41 +77,19 @@ export const ModulePanel = ({
         )}
 
         {moduleId === 'files' && (
-          <div className="flex flex-col gap-y-4">
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".glb,.gltf,.ifc"
-              className="hidden"
-              onChange={(event) => {
-                const file = event.target.files?.[0]
-                if (file) onUploadFile(file)
-                event.target.value = ''
-              }}
-            />
-            <EmptyStatePresentational
-              icon={FileUp}
-              title="3D model"
-              description="Upload a GLB, glTF or IFC file. It is processed in your browser."
-            >
-              <Button
-                variant="primary"
-                loading={isLoadingModel}
-                onClick={() => fileInputRef.current?.click()}
-              >
-                Upload model
-              </Button>
-              <Button variant="default" onClick={onUseDemo}>
-                Use demo model
-              </Button>
-            </EmptyStatePresentational>
-            {modelError && <p className="text-sm text-destructive">{modelError}</p>}
-            <div className="rounded-md border bg-surface-100 p-3 text-sm">
-              <p className="text-foreground-light">Current model</p>
-              <p>{modelName}</p>
-              <p className="text-foreground-lighter">{elements.length} elements</p>
-            </div>
-          </div>
+          <FilesPanel
+            modelName={modelName}
+            revision={modelRevision}
+            elementCount={elements.length}
+            isLoadingModel={isLoadingModel}
+            isImportingCsv={isImportingCsv}
+            modelError={modelError}
+            csvResult={csvResult}
+            csvError={csvError}
+            onUploadModel={onUploadFile}
+            onUploadCsv={onUploadCsv}
+            onUseDemo={onUseDemo}
+          />
         )}
 
         {(moduleId === 'filters' || moduleId === 'assets') && (

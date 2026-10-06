@@ -5,7 +5,20 @@ import { Checkbox, Input } from 'ui'
 import type { TwinElement } from './twin.types'
 
 const COLUMNS: Column<TwinElement>[] = [
-  { key: 'name', name: 'Name', minWidth: 220, resizable: true, sortable: true },
+  {
+    key: 'name',
+    name: 'Name',
+    minWidth: 220,
+    resizable: true,
+    sortable: true,
+    renderCell: ({ row }) => (
+      <span className={row.hasGeometry === false ? 'text-foreground-light' : undefined}>
+        {row.displayName ?? row.name}
+        {row.isEdited && <span className="ml-1.5 text-foreground-lighter">(edited)</span>}
+        {row.hasGeometry === false && <span className="ml-1.5 text-foreground-lighter">no 3D</span>}
+      </span>
+    ),
+  },
   { key: 'level', name: 'Level', resizable: true },
   { key: 'room', name: 'Rooms', resizable: true },
   { key: 'category', name: 'Category', resizable: true },
@@ -31,9 +44,13 @@ export const InventoryTable = ({ elements, selectedId, onSelect }: InventoryTabl
     return elements.filter((element) => {
       if (assetsOnly && NON_ASSET_CATEGORIES.has(element.category)) return false
       if (!query) return true
-      return [element.name, element.category, element.room, element.system].some((value) =>
-        value.toLowerCase().includes(query)
-      )
+      return [
+        element.displayName ?? element.name,
+        element.tag ?? '',
+        element.category,
+        element.room,
+        element.system,
+      ].some((value) => value.toLowerCase().includes(query))
     })
   }, [elements, search, assetsOnly])
 

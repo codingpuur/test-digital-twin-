@@ -3,6 +3,8 @@ import fs from 'fs'
 import os from 'os'
 import path from 'path'
 
+import type { TwinAsset } from '@/lib/twin/assets'
+
 // File-backed mock database for the digital twin UI. Server-side only.
 // Replace with a real backend later.
 
@@ -33,10 +35,23 @@ export type MockSite = {
   inserted_at: string
 }
 
+export type MockModel = {
+  site_ref: string
+  name: string
+  format: string
+  size: number
+  revision: number
+  uploaded_at: string
+}
+
 type MockDb = {
   users: MockUser[]
   organizations: MockOrganization[]
   sites: MockSite[]
+  /** Latest uploaded 3D model per site (the file itself lives in `MODELS_DIR`). */
+  models: MockModel[]
+  /** Asset records per site, keyed by `site_ref`. */
+  assets: (TwinAsset & { site_ref: string })[]
 }
 
 // Serverless hosts (Vercel) have a read-only project dir; only the OS temp dir is writable there.
@@ -44,11 +59,14 @@ const DB_DIR = process.env.VERCEL ? os.tmpdir() : path.join(process.cwd(), '.moc
 const DB_PATH = path.join(DB_DIR, 'db.json')
 const JWT_SECRET = 'digital-twin-mock-secret'
 
-const emptyDb = (): MockDb => ({ users: [], organizations: [], sites: [] })
+const emptyDb = (): MockDb => ({ users: [], organizations: [], sites: [], models: [], assets: [] })
+
+export const MODELS_DIR = path.join(DB_DIR, 'models')
 
 export const readDb = (): MockDb => {
   try {
-    return JSON.parse(fs.readFileSync(DB_PATH, 'utf8')) as MockDb
+    // Spread over an empty db so files written before models/assets existed still load.
+    return { ...emptyDb(), ...(JSON.parse(fs.readFileSync(DB_PATH, 'utf8')) as Partial<MockDb>) }
   } catch {
     return emptyDb()
   }

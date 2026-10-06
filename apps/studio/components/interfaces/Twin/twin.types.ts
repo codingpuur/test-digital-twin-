@@ -9,6 +9,17 @@ export type TwinElement = {
   guid: string
   /** Ids of mock streams that report on this element. */
   streamIds?: string[]
+  /** Stable asset tag used to match this element to its asset record across model revisions. */
+  tag?: string
+  /** Asset record this element is backed by, once the model has been imported. */
+  assetId?: string
+  /** Name after user edits. `name` stays the model's own name, which bindings and readings key on. */
+  displayName?: string
+  /** Extra properties imported from a CSV or IFC. */
+  properties?: Record<string, string>
+  isEdited?: boolean
+  /** False for inventory rows that exist only in a CSV and have no 3D object. */
+  hasGeometry?: boolean
 }
 
 export type TwinModule = {
