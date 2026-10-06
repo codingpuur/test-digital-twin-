@@ -4,6 +4,7 @@ import os from 'os'
 import path from 'path'
 
 import type { TwinAsset } from '@/lib/twin/assets'
+import type { StreamReading, TwinStream } from '@/lib/twin/streams'
 
 // File-backed mock database for the digital twin UI. Server-side only.
 // Replace with a real backend later.
@@ -52,6 +53,11 @@ type MockDb = {
   models: MockModel[]
   /** Asset records per site, keyed by `site_ref`. */
   assets: (TwinAsset & { site_ref: string })[]
+  streams: (TwinStream & { site_ref: string })[]
+  /** Recent readings per stream id (capped). */
+  readings: Record<string, StreamReading[]>
+  /** Secret that devices send to the ingest endpoint, per site. */
+  ingestKeys: Record<string, string>
 }
 
 // Serverless hosts (Vercel) have a read-only project dir; only the OS temp dir is writable there.
@@ -59,7 +65,16 @@ const DB_DIR = process.env.VERCEL ? os.tmpdir() : path.join(process.cwd(), '.moc
 const DB_PATH = path.join(DB_DIR, 'db.json')
 const JWT_SECRET = 'digital-twin-mock-secret'
 
-const emptyDb = (): MockDb => ({ users: [], organizations: [], sites: [], models: [], assets: [] })
+const emptyDb = (): MockDb => ({
+  users: [],
+  organizations: [],
+  sites: [],
+  models: [],
+  assets: [],
+  streams: [],
+  readings: {},
+  ingestKeys: {},
+})
 
 export const MODELS_DIR = path.join(DB_DIR, 'models')
 

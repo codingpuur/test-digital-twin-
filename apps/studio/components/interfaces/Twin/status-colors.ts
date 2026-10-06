@@ -23,3 +23,7 @@ export const getStatusColors = (elements: TwinElement[], signals: Signals) => {
   })
   return colors
 }
+
+/** Every element grey: used where no simulated readings apply (uploaded models). */
+export const getUnlinkedColors = (elements: TwinElement[]) =>
+  Object.fromEntries(elements.map((element) => [element.id, STATUS_COLORS.Unlinked]))

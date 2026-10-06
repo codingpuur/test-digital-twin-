@@ -2,10 +2,12 @@ import { Boxes } from 'lucide-react'
 import { Checkbox, cn } from 'ui'
 import { EmptyStatePresentational } from 'ui-patterns/EmptyStatePresentational'
 
+import { ConnectionsPanel } from './ConnectionsPanel'
 import { DashboardsPanel } from './dashboards/DashboardsPanel'
 import { FilesPanel } from './FilesPanel'
 import { SimulationPanel, type DataSource } from './simulation/SimulationPanel'
 import type { SimulationController } from './simulation/useSimulation'
+import { StreamsPanel } from './StreamsPanel'
 import { TWIN_MODULES, type TwinElement } from './twin.types'
 import type { ImportDiff } from '@/lib/twin/assets'
 
@@ -92,6 +94,9 @@ export const ModulePanel = ({
           />
         )}
 
+        {moduleId === 'connections' && <ConnectionsPanel />}
+        {moduleId === 'streams' && <StreamsPanel elements={elements} />}
+
         {(moduleId === 'filters' || moduleId === 'assets') && (
           <div className="flex flex-col gap-y-2">
             <p className="text-sm text-foreground-light">
@@ -110,7 +115,15 @@ export const ModulePanel = ({
           </div>
         )}
 
-        {!['dashboards', 'files', 'filters', 'assets', 'simulation'].includes(moduleId) && (
+        {![
+          'dashboards',
+          'files',
+          'filters',
+          'assets',
+          'simulation',
+          'connections',
+          'streams',
+        ].includes(moduleId) && (
           <EmptyStatePresentational
             icon={Boxes}
             title={`${label} is coming soon`}

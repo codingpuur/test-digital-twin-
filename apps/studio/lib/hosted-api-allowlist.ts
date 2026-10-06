@@ -35,7 +35,7 @@ export const HOSTED_SUPPORTED_API_URLS = [
 // and the TanStack guard strips BASE_PATH before calling. Entries are path
 // suffixes, so `endsWith` stays correct regardless.
 // Digital twin mock backend: served by this app itself, so these prefixes are allowed.
-const MOCK_BACKEND_API_PREFIXES = ['/api/mock-auth/', '/api/platform/']
+const MOCK_BACKEND_API_PREFIXES = ['/api/mock-auth/', '/api/platform/', '/api/ingest/']
 
 export function isHostedSupportedApiPath(pathname: string): boolean {
   if (MOCK_BACKEND_API_PREFIXES.some((prefix) => pathname.includes(prefix))) return true

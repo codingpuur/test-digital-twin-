@@ -19,11 +19,13 @@ import { SimulationBar } from './simulation/SimulationBar'
 import type { DataSource } from './simulation/SimulationPanel'
 import { SimulationResults } from './simulation/SimulationResults'
 import { useSimulation } from './simulation/useSimulation'
-import { getStatusColors, STATUS_COLORS } from './status-colors'
+import { getStatusColors, getUnlinkedColors, STATUS_COLORS } from './status-colors'
+import { applyStreamColors, getStreamReadings, groupStreamsByTag } from './stream-bridge'
 import { DEFAULT_TWIN_MODULE } from './twin.types'
 import { useTwinStore } from './useTwinStore'
 import { TimelineBar } from '@/components/ui/Timeline/TimelineBar'
 import { useTimeline } from '@/components/ui/Timeline/useTimeline'
+import { useTwinStreamsQuery } from '@/data/twin/twin-queries'
 import { useLocalStorage } from '@/hooks/misc/useLocalStorage'
 
 const TwinViewer = dynamic(() => import('./TwinViewer').then((mod) => mod.TwinViewer), {
@@ -45,6 +47,7 @@ export const SiteWorkspace = () => {
   const [modelError, setModelError] = useState<string | null>(null)
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const store = useTwinStore(ref)
+  const streamsQuery = useTwinStreamsQuery(ref)
   // Revision of the saved model already shown, so restoring (or our own upload) is not re-applied.
   const shownRevision = useRef<number | null>(null)
   const [hiddenCategories, setHiddenCategories] = useState<Set<string>>(new Set())
@@ -96,7 +99,17 @@ export const SiteWorkspace = () => {
   const signals = isSimulation
     ? getSimSignals(simulation.snapshot.state, simulation.snapshot.controls)
     : liveSignals
-  const colorsNow = colorByStatus ? getStatusColors(elements, signals) : null
+  const streamsByTag = useMemo(
+    () => groupStreamsByTag(streamsQuery.data?.streams ?? []),
+    [streamsQuery.data]
+  )
+  const colorsNow = colorByStatus
+    ? applyStreamColors(
+        isDemoModel ? getStatusColors(elements, signals) : getUnlinkedColors(elements),
+        elements,
+        streamsByTag
+      )
+    : null
   // Colours only change when a reading crosses a threshold: key on the result so the viewer is not
   // re-tinted on every throttled simulation update.
   const colorKey = JSON.stringify(colorsNow)
@@ -296,6 +309,8 @@ export const SiteWorkspace = () => {
           <PropertiesPanel
             element={selectedElement}
             signals={signals}
+            isDemoModel={isDemoModel}
+            streamReadings={selectedElement ? getStreamReadings(selectedElement, streamsByTag) : []}
             readingsLabel={isSimulation ? 'simulated' : new Date(timeline.cursor).toLocaleString()}
             bindings={bindings}
             onBindingsChange={handleBindingsChange}

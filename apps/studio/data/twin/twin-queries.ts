@@ -8,6 +8,7 @@ import type {
   ImportMode,
   TwinAsset,
 } from '@/lib/twin/assets'
+import type { StreamReading, TwinStream } from '@/lib/twin/streams'
 
 export type TwinModelMeta = {
   name: string
@@ -22,6 +23,7 @@ export const twinKeys = {
   modelFile: (ref: string | undefined, revision: number | undefined) =>
     ['twin', ref, 'model-file', revision] as const,
   assets: (ref: string | undefined) => ['twin', ref, 'assets'] as const,
+  streams: (ref: string | undefined) => ['twin', ref, 'streams'] as const,
 }
 
 export const useTwinModelQuery = (ref: string | undefined) =>
@@ -99,5 +101,44 @@ export const useUpdateTwinAssetMutation = (ref: string | undefined) => {
         body: JSON.stringify({ override }),
       }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: twinKeys.assets(ref) }),
+  })
+}
+
+export type TwinStreamRow = TwinStream & { recent: StreamReading[] }
+
+export const useTwinStreamsQuery = (ref: string | undefined) =>
+  useQuery({
+    queryKey: twinKeys.streams(ref),
+    queryFn: () =>
+      twinFetchJson<{ streams: TwinStreamRow[]; ingestKey: string }>(`/${ref}/streams`),
+    enabled: Boolean(ref),
+    // Readings arrive from outside the app, so poll to keep the twin live.
+    refetchInterval: 3000,
+  })
+
+export const useUpdateTwinStreamMutation = (ref: string | undefined) => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({
+      id,
+      ...mapping
+    }: { id: string } & Pick<TwinStream, 'assetTag' | 'parameter' | 'unit' | 'warnAbove'>) =>
+      twinFetchJson<{ stream: TwinStream }>(`/${ref}/streams/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify(mapping),
+      }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: twinKeys.streams(ref) }),
+  })
+}
+
+export const usePostTwinReadingsMutation = (ref: string | undefined) => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (readings: { stream: string; value: number; ts?: number }[]) =>
+      twinFetchJson<{ accepted: number; rejected: number }>(`/${ref}/readings`, {
+        method: 'POST',
+        body: JSON.stringify({ readings }),
+      }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: twinKeys.streams(ref) }),
   })
 }

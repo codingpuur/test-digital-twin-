@@ -145,6 +145,8 @@ export type ElementReading = {
   label: string
   value: string
   isWarning: boolean
+  /** Recent values, for a sparkline (stream readings only). */
+  history?: number[]
 }
 
 export const getElementReadings = (element: TwinElement, signals: Signals): ElementReading[] =>

@@ -6,7 +6,8 @@ import { EmptyStatePresentational } from 'ui-patterns/EmptyStatePresentational'
 import { AssetEditor } from './AssetEditor'
 import type { AnimationBinding } from './simulation/animation.types'
 import { BindingsSection } from './simulation/BindingsSection'
-import { getElementReadings, type Signals } from './simulation/signals'
+import { getElementReadings, type ElementReading, type Signals } from './simulation/signals'
+import { Sparkline } from './Sparkline'
 import type { TwinElement } from './twin.types'
 import type { EditableValues } from '@/lib/twin/assets'
 
@@ -15,6 +16,10 @@ type PropertiesPanelProps = {
   signals: Signals
   /** What the readings below come from, shown in their heading. */
   readingsLabel: string
+  /** Readings from mapped sensor streams, shown after the simulated ones. */
+  streamReadings: ElementReading[]
+  /** The simulated readings are keyed by the demo's element names, so only the demo gets them. */
+  isDemoModel: boolean
   bindings: AnimationBinding[]
   onBindingsChange: (bindings: AnimationBinding[]) => void
   isSavingEdits: boolean
@@ -36,6 +41,8 @@ export const PropertiesPanel = ({
   element,
   signals,
   readingsLabel,
+  streamReadings,
+  isDemoModel,
   bindings,
   onBindingsChange,
   isSavingEdits,
@@ -43,7 +50,8 @@ export const PropertiesPanel = ({
   onRevertEdits,
 }: PropertiesPanelProps) => {
   const [isEditing, setIsEditing] = useState(false)
-  const readings = element ? getElementReadings(element, signals) : []
+  const simulatedReadings = element && isDemoModel ? getElementReadings(element, signals) : []
+  const readings = [...simulatedReadings, ...streamReadings]
 
   return (
     <div className="flex h-full flex-col bg-dash-sidebar">
@@ -126,13 +134,14 @@ export const PropertiesPanel = ({
                   No signals linked to this element.
                 </p>
               )}
-              {readings.map((reading) => (
+              {readings.map((reading, index) => (
                 <div
-                  key={reading.label}
+                  key={`${reading.label}-${index}`}
                   className="flex items-center justify-between rounded-md border bg-surface-100 px-3 py-2 text-sm"
                 >
                   <span>{reading.label}</span>
                   <span className="flex items-center gap-x-2">
+                    {reading.history && <Sparkline values={reading.history} />}
                     {reading.value}
                     <Badge variant={reading.isWarning ? 'warning' : 'default'}>
                       {reading.isWarning ? 'Warning' : 'Normal'}
