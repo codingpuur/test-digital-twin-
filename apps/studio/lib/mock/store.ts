@@ -1,5 +1,6 @@
 import crypto from 'crypto'
 import fs from 'fs'
+import os from 'os'
 import path from 'path'
 
 // File-backed mock database for the digital twin UI. Server-side only.
@@ -38,7 +39,9 @@ type MockDb = {
   sites: MockSite[]
 }
 
-const DB_PATH = path.join(process.cwd(), '.mock-data', 'db.json')
+// Serverless hosts (Vercel) have a read-only project dir; only the OS temp dir is writable there.
+const DB_DIR = process.env.VERCEL ? os.tmpdir() : path.join(process.cwd(), '.mock-data')
+const DB_PATH = path.join(DB_DIR, 'db.json')
 const JWT_SECRET = 'digital-twin-mock-secret'
 
 const emptyDb = (): MockDb => ({ users: [], organizations: [], sites: [] })
@@ -120,7 +123,12 @@ export const createSession = (user: MockUser) => {
     token_type: 'bearer',
     expires_in: expiresIn,
     expires_at: now + expiresIn,
-    refresh_token: signJwt({ sub: user.id, type: 'refresh', iat: now, exp: now + 60 * 60 * 24 * 30 }),
+    refresh_token: signJwt({
+      sub: user.id,
+      type: 'refresh',
+      iat: now,
+      exp: now + 60 * 60 * 24 * 30,
+    }),
     user: toGoTrueUser(user),
   }
 }
