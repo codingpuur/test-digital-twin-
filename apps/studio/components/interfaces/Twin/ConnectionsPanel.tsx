@@ -9,6 +9,19 @@ import { BASE_PATH } from '@/lib/constants'
 import { csvToReadings } from '@/lib/twin/streams'
 
 const TEST_STREAM = 'demo.sensor'
+const HISTORY_HOURS = 6
+
+/** A smooth wave with noise, one point a minute, ending now: enough to try replay and charts. */
+const buildSampleHistory = (now = Date.now()) =>
+  Array.from({ length: HISTORY_HOURS * 60 }, (_, index) => {
+    const ts = now - (HISTORY_HOURS * 60 - index) * 60_000
+    const wave = Math.sin((index / 90) * Math.PI * 2)
+    return {
+      stream: TEST_STREAM,
+      ts,
+      value: +(50 + wave * 30 + (Math.random() - 0.5) * 6).toFixed(1),
+    }
+  })
 
 export const ConnectionsPanel = () => {
   const { ref } = useParams()
@@ -104,6 +117,18 @@ export const ConnectionsPanel = () => {
           }
         >
           Send test reading
+        </Button>
+        <p className="text-xs text-foreground-light">
+          Or fill the last {HISTORY_HOURS} hours of history, then scrub the timeline to replay it.
+        </p>
+        <Button
+          size="tiny"
+          variant="default"
+          className="self-start"
+          loading={postReadings.isPending}
+          onClick={() => postReadings.mutate(buildSampleHistory())}
+        >
+          Load sample history
         </Button>
       </section>
     </div>

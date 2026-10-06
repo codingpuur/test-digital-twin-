@@ -10,15 +10,13 @@ import {
 } from 'recharts'
 import { Badge, cn } from 'ui'
 
-import type { DashboardCard, DateRangeId } from './dashboards.types'
 import {
-  formatValue,
-  getSeries,
-  getStatus,
-  getStream,
-  readStream,
-  type MockStream,
-} from './mock-streams'
+  formatStreamValue,
+  getStreamStatus,
+  useDashboardStreams,
+  type DashboardStream,
+} from './dashboard-streams'
+import type { DashboardCard, DateRangeId } from './dashboards.types'
 
 const LINE_COLORS = ['#3ecf8e', '#4c9be8', '#e5a23b']
 
@@ -29,8 +27,10 @@ type DashboardCardViewProps = {
   isSample?: boolean
 }
 
-const resolveStreams = (card: DashboardCard) =>
-  card.config.streamIds.map(getStream).filter((stream): stream is MockStream => !!stream)
+const resolveStreams = (card: DashboardCard, catalog: DashboardStream[]) =>
+  card.config.streamIds
+    .map((id) => catalog.find((stream) => stream.id === id))
+    .filter((stream): stream is DashboardStream => !!stream)
 
 const CardTitle = ({ children }: { children: string }) => (
   <p className="text-xs uppercase tracking-wide text-foreground-light">{children}</p>
@@ -57,13 +57,13 @@ const BigValue = ({
   </div>
 )
 
-const Gauge = ({ stream, value }: { stream: MockStream; value: number }) => {
-  const ratio = (value - stream.min) / (stream.max - stream.min)
+const Gauge = ({ stream, value }: { stream: DashboardStream; value: number | null }) => {
+  const ratio = ((value ?? stream.min) - stream.min) / (stream.max - stream.min)
   const angle = Math.PI * Math.min(1, Math.max(0, ratio))
   const radius = 70
   const endX = 90 - radius * Math.cos(angle)
   const endY = 90 - radius * Math.sin(angle)
-  const isWarning = getStatus(stream, value) === 'Warning'
+  const isWarning = getStreamStatus(stream, value) === 'Warning'
 
   return (
     <div className="flex h-full flex-col items-center justify-center gap-y-1">
@@ -84,7 +84,7 @@ const Gauge = ({ stream, value }: { stream: MockStream; value: number }) => {
           strokeLinecap="round"
         />
         <text x="90" y="86" textAnchor="middle" className="fill-foreground text-[22px]">
-          {formatValue(stream, value)}
+          {formatStreamValue(stream, value)}
           <tspan className="fill-foreground-light text-[11px]"> {stream.unit}</tspan>
         </text>
       </svg>
@@ -94,19 +94,29 @@ const Gauge = ({ stream, value }: { stream: MockStream; value: number }) => {
 }
 
 export const DashboardCardView = ({ card, rangeId, now, isSample }: DashboardCardViewProps) => {
-  const streams = resolveStreams(card)
+  const catalog = useDashboardStreams()
+  const streams = resolveStreams(card, catalog.all)
   const primary = streams[0]
 
   const series = useMemo(() => {
     if (card.type !== 'value-over-time') return []
-    // Merge every stream into one row per timestamp so recharts can draw several lines.
-    const perStream = streams.map((stream) => getSeries(stream, rangeId, now))
-    return perStream[0]?.map((point, index) => ({
-      time: point.time,
-      ...Object.fromEntries(streams.map((stream, i) => [stream.id, perStream[i][index].value])),
-    }))
+    // One row per timestamp across all streams, so recharts can draw several lines (live streams
+    // do not share timestamps).
+    const rows = new Map<number, Record<string, number>>()
+    streams.forEach((stream) =>
+      stream.series(rangeId, now).forEach((point) => {
+        rows.set(point.time, { ...rows.get(point.time), [stream.id]: point.value })
+      })
+    )
+    return [...rows.entries()]
+      .sort(([a], [b]) => a - b)
+      .map(([time, values]) => ({ time, ...values }))
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [card.type, card.config.streamIds.join(','), rangeId, Math.floor(now / 60_000)])
+  }, [card.type, card.config.streamIds.join(','), rangeId, Math.floor(now / 60_000), catalog.live])
+
+  // Real streams often cover only hours, so label the axis by time rather than by day.
+  const spanMs = series.length > 1 ? series[series.length - 1].time - series[0].time : 0
+  const isShortSpan = rangeId === '24h' || spanMs <= 48 * 3_600_000
 
   if (card.type === 'custom-text') {
     return (
@@ -123,29 +133,32 @@ export const DashboardCardView = ({ card, rangeId, now, isSample }: DashboardCar
     return <p className="m-auto text-sm text-foreground-lighter">Select a stream</p>
   }
 
-  if (card.type === 'last-value') return <Gauge stream={primary} value={readStream(primary, now)} />
+  if (card.type === 'last-value') return <Gauge stream={primary} value={primary.valueAt(now)} />
 
   if (card.type === 'parameter-value') {
     return (
       <BigValue
         title={primary.name}
         subtitle={primary.asset}
-        value={formatValue(primary, readStream(primary, now))}
+        value={formatStreamValue(primary, primary.valueAt(now))}
         unit={primary.unit}
       />
     )
   }
 
   if (card.type === 'aggregate-value') {
-    const points = getSeries(primary, rangeId, now)
-    const average = points.reduce((total, point) => total + point.value, 0) / points.length
+    const points = primary.series(rangeId, now)
+    const average =
+      points.length === 0
+        ? null
+        : points.reduce((total, point) => total + point.value, 0) / points.length
     return (
       <BigValue
         title={`${primary.name} (average)`}
         subtitle={
           rangeId === '24h' ? 'Last 24 hours' : rangeId === '7d' ? 'Last 7 days' : 'Last 30 days'
         }
-        value={formatValue(primary, average)}
+        value={formatStreamValue(primary, average)}
         unit={primary.unit}
       />
     )
@@ -166,13 +179,13 @@ export const DashboardCardView = ({ card, rangeId, now, isSample }: DashboardCar
           </thead>
           <tbody>
             {streams.map((stream) => {
-              const value = readStream(stream, now)
-              const status = getStatus(stream, value)
+              const value = stream.valueAt(now)
+              const status = getStreamStatus(stream, value)
               return (
                 <tr key={stream.id} className="border-t">
                   <td className="py-1.5">{stream.name}</td>
                   <td className={cn('py-1.5', status === 'Warning' && 'text-warning')}>
-                    {formatValue(stream, value)} {stream.unit}
+                    {formatStreamValue(stream, value)} {stream.unit}
                   </td>
                   <td className="py-1.5 text-foreground-light">{stream.asset}</td>
                   <td className="py-1.5">
@@ -203,7 +216,7 @@ export const DashboardCardView = ({ card, rangeId, now, isSample }: DashboardCar
               tickFormatter={(time: number) =>
                 new Date(time).toLocaleString(
                   [],
-                  rangeId === '24h'
+                  isShortSpan
                     ? { hour: '2-digit', minute: '2-digit' }
                     : { month: 'short', day: 'numeric' }
                 )
@@ -238,6 +251,7 @@ export const DashboardCardView = ({ card, rangeId, now, isSample }: DashboardCar
                 dot={false}
                 strokeWidth={1.5}
                 isAnimationActive={false}
+                connectNulls
               />
             ))}
           </LineChart>

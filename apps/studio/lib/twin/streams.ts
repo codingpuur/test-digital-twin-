@@ -138,5 +138,21 @@ export const csvToReadings = (
   return { status: 'success', readings: valid }
 }
 
-export const isWarning = (stream: TwinStream) =>
-  stream.warnAbove !== null && stream.lastValue !== null && stream.lastValue > stream.warnAbove
+/**
+ * The reading in force at `atMs`: the latest one at or before it. `null` means no data yet at that
+ * time. `atMs = null` means live, i.e. the newest reading.
+ */
+export const readingAt = (readings: StreamReading[], atMs: number | null): StreamReading | null => {
+  if (atMs === null) return readings.at(-1) ?? null
+  // Readings are time-ordered, so scan back from the end.
+  for (let index = readings.length - 1; index >= 0; index--) {
+    if (readings[index].ts <= atMs) return readings[index]
+  }
+  return null
+}
+
+export const readingsBetween = (readings: StreamReading[], fromMs: number, toMs: number) =>
+  readings.filter((reading) => reading.ts >= fromMs && reading.ts <= toMs)
+
+export const isWarningValue = (value: number | null, warnAbove: number | null) =>
+  warnAbove !== null && value !== null && value > warnAbove

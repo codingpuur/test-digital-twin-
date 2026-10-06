@@ -19,6 +19,7 @@ import {
   Textarea,
 } from 'ui'
 
+import { useDashboardStreams } from './dashboard-streams'
 import { DashboardCardView } from './DashboardCardView'
 import {
   CARD_DEFINITIONS,
@@ -27,7 +28,6 @@ import {
   type DashboardCard,
   type DateRangeId,
 } from './dashboards.types'
-import { MOCK_STREAMS } from './mock-streams'
 
 const SAMPLE_STREAMS: Record<string, string[]> = {
   'parameter-value': ['power'],
@@ -54,6 +54,7 @@ export const AddCardDialog = ({ open, rangeId, now, onOpenChange, onAdd }: AddCa
   const [search, setSearch] = useState('')
   const [config, setConfig] = useState<CardConfig>({ streamIds: [] })
   const [useSampleData, setUseSampleData] = useState(false)
+  const streamCatalog = useDashboardStreams()
 
   const filtered = useMemo(
     () =>
@@ -196,19 +197,34 @@ export const AddCardDialog = ({ open, rangeId, now, onOpenChange, onAdd }: AddCa
                       (up to {definition.maxStreams})
                     </span>
                   </p>
-                  {MOCK_STREAMS.map((stream) => (
-                    <label
-                      key={stream.id}
-                      className="flex cursor-pointer items-center gap-x-2 text-sm"
-                    >
-                      <Checkbox
-                        checked={config.streamIds.includes(stream.id)}
-                        onCheckedChange={() => toggleStream(stream.id, definition.maxStreams)}
-                      />
-                      <span className="flex-1">{stream.name}</span>
-                      <span className="text-foreground-lighter">{stream.unit}</span>
-                    </label>
-                  ))}
+                  {[
+                    { label: 'Your streams', items: streamCatalog.live },
+                    { label: 'Sample streams', items: streamCatalog.sample },
+                  ]
+                    .filter((group) => group.items.length > 0)
+                    .map((group) => (
+                      <div key={group.label} className="flex flex-col gap-y-2">
+                        <p className="text-xs uppercase tracking-wide text-foreground-lighter">
+                          {group.label}
+                        </p>
+                        {group.items.map((stream) => (
+                          <label
+                            key={stream.id}
+                            className="flex cursor-pointer items-center gap-x-2 text-sm"
+                          >
+                            <Checkbox
+                              checked={config.streamIds.includes(stream.id)}
+                              onCheckedChange={() => toggleStream(stream.id, definition.maxStreams)}
+                            />
+                            <span className="flex-1">
+                              {stream.name}
+                              <span className="ml-1 text-foreground-lighter">{stream.asset}</span>
+                            </span>
+                            <span className="text-foreground-lighter">{stream.unit}</span>
+                          </label>
+                        ))}
+                      </div>
+                    ))}
                 </div>
               )}
               <p className="text-xs text-foreground-lighter">

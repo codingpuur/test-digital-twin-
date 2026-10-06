@@ -21,7 +21,7 @@ import {
   useUpdateTwinStreamMutation,
   type TwinStreamRow,
 } from '@/data/twin/twin-queries'
-import { isWarning } from '@/lib/twin/streams'
+import { isWarningValue } from '@/lib/twin/streams'
 
 const UNMAPPED = '__unmapped'
 
@@ -54,8 +54,20 @@ const StreamRow = ({
     >
       <div className="flex items-center justify-between gap-x-2">
         <span className="break-all text-sm">{stream.key}</span>
-        <Badge variant={isWarning(stream) ? 'warning' : stream.assetTag ? 'success' : 'default'}>
-          {stream.assetTag ? (isWarning(stream) ? 'Warning' : 'Mapped') : 'Unmapped'}
+        <Badge
+          variant={
+            isWarningValue(stream.lastValue, stream.warnAbove)
+              ? 'warning'
+              : stream.assetTag
+                ? 'success'
+                : 'default'
+          }
+        >
+          {stream.assetTag
+            ? isWarningValue(stream.lastValue, stream.warnAbove)
+              ? 'Warning'
+              : 'Mapped'
+            : 'Unmapped'}
         </Badge>
       </div>
       <div className="flex items-center justify-between text-xs text-foreground-lighter">
@@ -63,7 +75,7 @@ const StreamRow = ({
           {stream.lastValue === null ? 'No data' : `Last: ${+stream.lastValue.toFixed(2)}`}
           {stream.lastTs ? ` · ${new Date(stream.lastTs).toLocaleTimeString()}` : ''}
         </span>
-        <Sparkline values={stream.recent.map((reading) => reading.value)} />
+        <Sparkline values={stream.readings.slice(-40).map((reading) => reading.value)} />
       </div>
 
       <Controller

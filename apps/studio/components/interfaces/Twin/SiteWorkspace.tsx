@@ -99,6 +99,8 @@ export const SiteWorkspace = () => {
   const signals = isSimulation
     ? getSimSignals(simulation.snapshot.state, simulation.snapshot.controls)
     : liveSignals
+  // Live follows the newest reading; scrubbing the timeline replays what was stored at that time.
+  const replayAt = timeline.isLive ? null : timeline.cursor
   const streamsByTag = useMemo(
     () => groupStreamsByTag(streamsQuery.data?.streams ?? []),
     [streamsQuery.data]
@@ -107,7 +109,8 @@ export const SiteWorkspace = () => {
     ? applyStreamColors(
         isDemoModel ? getStatusColors(elements, signals) : getUnlinkedColors(elements),
         elements,
-        streamsByTag
+        streamsByTag,
+        replayAt
       )
     : null
   // Colours only change when a reading crosses a threshold: key on the result so the viewer is not
@@ -310,7 +313,9 @@ export const SiteWorkspace = () => {
             element={selectedElement}
             signals={signals}
             isDemoModel={isDemoModel}
-            streamReadings={selectedElement ? getStreamReadings(selectedElement, streamsByTag) : []}
+            streamReadings={
+              selectedElement ? getStreamReadings(selectedElement, streamsByTag, replayAt) : []
+            }
             readingsLabel={isSimulation ? 'simulated' : new Date(timeline.cursor).toLocaleString()}
             bindings={bindings}
             onBindingsChange={handleBindingsChange}

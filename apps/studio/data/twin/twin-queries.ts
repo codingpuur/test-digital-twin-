@@ -104,7 +104,7 @@ export const useUpdateTwinAssetMutation = (ref: string | undefined) => {
   })
 }
 
-export type TwinStreamRow = TwinStream & { recent: StreamReading[] }
+export type TwinStreamRow = TwinStream & { readings: StreamReading[] }
 
 export const useTwinStreamsQuery = (ref: string | undefined) =>
   useQuery({
