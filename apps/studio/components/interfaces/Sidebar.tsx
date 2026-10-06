@@ -464,7 +464,7 @@ const OrganizationLinks = () => {
     },
   ]
 
-  // iPUMP Sense has no Integrations or Usage pages.
+  // iPUMP Twin has no Integrations or Usage pages.
   const navMenuItems = IS_MOCK_BACKEND
     ? allNavMenuItems.filter((item) => !['integrations', 'usage'].includes(item.key))
     : allNavMenuItems

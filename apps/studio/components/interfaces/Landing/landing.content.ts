@@ -158,7 +158,7 @@ export const FAQS = [
   {
     question: 'Do I need hardware or a SCADA system to try it?',
     answer:
-      'No. iPUMP Sense includes a simulator that produces realistic readings, so you can explore the workspace, dashboards and simulation straight away.',
+      'No. iPUMP Twin includes a simulator that produces realistic readings, so you can explore the workspace, dashboards and simulation straight away.',
   },
   {
     question: 'Can I connect my real data?',
@@ -173,7 +173,7 @@ export const FAQS = [
   {
     question: 'Is it ready for production use?',
     answer:
-      'iPUMP Sense is in early access. Real authentication, storage for models and documents, and roles for your team are still on the way, so treat it as a preview.',
+      'iPUMP Twin is in early access. Real authentication, storage for models and documents, and roles for your team are still on the way, so treat it as a preview.',
   },
   {
     question: 'Can I manage more than one station?',
