@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { Badge, Button } from 'ui'
 import { EmptyStatePresentational } from 'ui-patterns/EmptyStatePresentational'
 
+import { elementTag } from './asset-bridge'
 import { AssetEditor } from './AssetEditor'
 import type { AnimationBinding } from './simulation/animation.types'
 import { BindingsSection } from './simulation/BindingsSection'
@@ -10,6 +11,7 @@ import { getElementReadings, type ElementReading, type Signals } from './simulat
 import { Sparkline } from './Sparkline'
 import type { TwinElement } from './twin.types'
 import type { EditableValues } from '@/lib/twin/assets'
+import type { TwinTicket } from '@/lib/twin/workspace'
 
 type PropertiesPanelProps = {
   element: TwinElement | null
@@ -22,6 +24,9 @@ type PropertiesPanelProps = {
   isDemoModel: boolean
   bindings: AnimationBinding[]
   onBindingsChange: (bindings: AnimationBinding[]) => void
+  /** Tickets of the site, to show the ones about the selected asset. */
+  tickets: TwinTicket[]
+  onCreateTicket: (assetTag: string) => void
   isSavingEdits: boolean
   onSaveEdits: (assetId: string, values: EditableValues) => Promise<unknown>
   onRevertEdits: (assetId: string) => Promise<unknown>
@@ -45,6 +50,8 @@ export const PropertiesPanel = ({
   isDemoModel,
   bindings,
   onBindingsChange,
+  tickets,
+  onCreateTicket,
   isSavingEdits,
   onSaveEdits,
   onRevertEdits,
@@ -52,6 +59,11 @@ export const PropertiesPanel = ({
   const [isEditing, setIsEditing] = useState(false)
   const simulatedReadings = element && isDemoModel ? getElementReadings(element, signals) : []
   const readings = [...simulatedReadings, ...streamReadings]
+  const assetTickets = element
+    ? tickets.filter(
+        (ticket) => ticket.assetTag === elementTag(element) && ticket.status !== 'done'
+      )
+    : []
 
   return (
     <div className="flex h-full flex-col bg-dash-sidebar">
@@ -149,6 +161,34 @@ export const PropertiesPanel = ({
                   </span>
                 </div>
               ))}
+            </div>
+
+            <div className="flex flex-col gap-y-2">
+              <h3 className="text-xs uppercase tracking-wide text-foreground-light">Tickets</h3>
+              {assetTickets.length === 0 && (
+                <p className="text-sm text-foreground-lighter">No open tickets for this asset.</p>
+              )}
+              {assetTickets.map((ticket) => (
+                <div
+                  key={ticket.id}
+                  className="flex items-center justify-between gap-x-2 rounded-md border bg-surface-100 px-3 py-2 text-sm"
+                >
+                  <span className="truncate">
+                    T-{ticket.number} {ticket.title}
+                  </span>
+                  <Badge variant={ticket.priority === 'high' ? 'destructive' : 'default'}>
+                    {ticket.status === 'open' ? 'Open' : 'In progress'}
+                  </Badge>
+                </div>
+              ))}
+              <Button
+                size="tiny"
+                variant="default"
+                className="self-start"
+                onClick={() => onCreateTicket(elementTag(element))}
+              >
+                Create ticket
+              </Button>
             </div>
 
             <BindingsSection

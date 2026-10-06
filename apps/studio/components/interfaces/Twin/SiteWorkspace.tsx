@@ -28,6 +28,7 @@ import { useTwinStore } from './useTwinStore'
 import { TimelineBar } from '@/components/ui/Timeline/TimelineBar'
 import { useTimeline } from '@/components/ui/Timeline/useTimeline'
 import { useTwinStreamsQuery } from '@/data/twin/twin-queries'
+import { useTwinTicketsQuery } from '@/data/twin/twin-workspace-queries'
 import { useLocalStorage } from '@/hooks/misc/useLocalStorage'
 
 const TwinViewer = dynamic(() => import('./TwinViewer').then((mod) => mod.TwinViewer), {
@@ -40,7 +41,13 @@ type BottomTab = 'inventory' | 'simulation'
 
 export const SiteWorkspace = () => {
   const { ref } = useParams()
-  const [moduleId] = useQueryState('module', parseAsString.withDefault(DEFAULT_TWIN_MODULE))
+  const [moduleId, setModuleId] = useQueryState(
+    'module',
+    parseAsString.withDefault(DEFAULT_TWIN_MODULE)
+  )
+  // Set when "Create ticket" is used on an asset: the tickets panel opens a form linked to it.
+  const [newTicketAsset, setNewTicketAsset] = useState<string | null>(null)
+  const { data: tickets = [] } = useTwinTicketsQuery(ref)
 
   const [scene, setScene] = useState<THREE.Object3D>(() => buildDemoStation())
   const [modelName, setModelName] = useState(DEMO_MODEL_NAME)
@@ -214,6 +221,8 @@ export const SiteWorkspace = () => {
             csvResult={store.csvResult}
             csvError={store.csvError}
             onUploadCsv={store.importCsv}
+            newTicketAsset={newTicketAsset}
+            onNewTicketHandled={() => setNewTicketAsset(null)}
             isLoadingModel={isLoadingModel}
             modelError={modelError}
             hiddenCategories={hiddenCategories}
@@ -342,6 +351,11 @@ export const SiteWorkspace = () => {
             readingsLabel={isSimulation ? 'simulated' : new Date(timeline.cursor).toLocaleString()}
             bindings={bindings}
             onBindingsChange={handleBindingsChange}
+            tickets={tickets}
+            onCreateTicket={(assetTag) => {
+              setNewTicketAsset(assetTag)
+              setModuleId('tickets')
+            }}
             isSavingEdits={store.isSavingEdits}
             onSaveEdits={store.saveEdits}
             onRevertEdits={store.revertEdits}

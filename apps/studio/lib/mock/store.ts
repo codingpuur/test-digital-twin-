@@ -5,6 +5,7 @@ import path from 'path'
 
 import type { TwinAsset } from '@/lib/twin/assets'
 import type { StreamReading, TwinStream } from '@/lib/twin/streams'
+import type { TwinDoc, TwinMember, TwinTicket } from '@/lib/twin/workspace'
 
 // File-backed mock database for the digital twin UI. Server-side only.
 // Replace with a real backend later.
@@ -58,6 +59,11 @@ type MockDb = {
   readings: Record<string, StreamReading[]>
   /** Secret that devices send to the ingest endpoint, per site. */
   ingestKeys: Record<string, string>
+  tickets: (TwinTicket & { site_ref: string })[]
+  /** Document metadata; the files live in `DOCS_DIR`. */
+  docs: (TwinDoc & { site_ref: string })[]
+  /** People invited to a site (the owner is implied by the organization). */
+  members: (Omit<TwinMember, 'isOwner'> & { site_ref: string })[]
 }
 
 // Serverless hosts (Vercel) have a read-only project dir; only the OS temp dir is writable there.
@@ -74,9 +80,13 @@ const emptyDb = (): MockDb => ({
   streams: [],
   readings: {},
   ingestKeys: {},
+  tickets: [],
+  docs: [],
+  members: [],
 })
 
 export const MODELS_DIR = path.join(DB_DIR, 'models')
+export const DOCS_DIR = path.join(DB_DIR, 'docs')
 
 export const readDb = (): MockDb => {
   try {

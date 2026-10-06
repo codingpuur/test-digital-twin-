@@ -30,30 +30,32 @@ export const DashboardsPanel = () => {
         />
       )}
 
-      {dashboards.map((dashboard) => (
-        <div
-          key={dashboard.id}
-          className="group flex items-center gap-x-2 rounded-md border bg-surface-100 px-3 py-2 hover:border-foreground-muted"
-        >
-          <Link
-            href={`/project/${siteRef}/dashboards/${dashboard.id}`}
-            className="flex min-w-0 flex-1 flex-col"
+      {/* The route param is not known on the very first render; links would get an empty site. */}
+      {siteRef &&
+        dashboards.map((dashboard) => (
+          <div
+            key={dashboard.id}
+            className="group flex items-center gap-x-2 rounded-md border bg-surface-100 px-3 py-2 hover:border-foreground-muted"
           >
-            <span className="truncate text-sm">{dashboard.name}</span>
-            <span className="text-xs text-foreground-lighter">
-              {dashboard.cards.length} {dashboard.cards.length === 1 ? 'card' : 'cards'}
-            </span>
-          </Link>
-          <Button
-            variant="text"
-            size="tiny"
-            aria-label={`Delete ${dashboard.name}`}
-            className="opacity-0 group-hover:opacity-100"
-            icon={<Trash2 size={14} />}
-            onClick={() => deleteDashboard(dashboard.id)}
-          />
-        </div>
-      ))}
+            <Link
+              href={`/project/${siteRef}/dashboards/${dashboard.id}`}
+              className="flex min-w-0 flex-1 flex-col"
+            >
+              <span className="truncate text-sm">{dashboard.name}</span>
+              <span className="text-xs text-foreground-lighter">
+                {dashboard.cards.length} {dashboard.cards.length === 1 ? 'card' : 'cards'}
+              </span>
+            </Link>
+            <Button
+              variant="text"
+              size="tiny"
+              aria-label={`Delete ${dashboard.name}`}
+              className="opacity-0 group-hover:opacity-100"
+              icon={<Trash2 size={14} />}
+              onClick={() => deleteDashboard(dashboard.id)}
+            />
+          </div>
+        ))}
 
       <CreateDashboardDialog
         open={isCreating}

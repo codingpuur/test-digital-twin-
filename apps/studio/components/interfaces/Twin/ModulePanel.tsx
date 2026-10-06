@@ -4,11 +4,14 @@ import { EmptyStatePresentational } from 'ui-patterns/EmptyStatePresentational'
 
 import { ConnectionsPanel } from './ConnectionsPanel'
 import { DashboardsPanel } from './dashboards/DashboardsPanel'
+import { DocsPanel } from './DocsPanel'
 import { FilesPanel } from './FilesPanel'
 import { SimulationPanel, type DataSource } from './simulation/SimulationPanel'
 import type { SimulationController } from './simulation/useSimulation'
 import { StreamsPanel } from './StreamsPanel'
+import { TicketsPanel } from './TicketsPanel'
 import { TWIN_MODULES, type TwinElement } from './twin.types'
+import { UsersPanel } from './UsersPanel'
 import type { ImportDiff } from '@/lib/twin/assets'
 
 type ModulePanelProps = {
@@ -20,6 +23,8 @@ type ModulePanelProps = {
   csvResult: { fileName: string; diff: ImportDiff } | null
   csvError: string | null
   onUploadCsv: (file: File) => void
+  newTicketAsset: string | null
+  onNewTicketHandled: () => void
   isLoadingModel: boolean
   modelError: string | null
   hiddenCategories: Set<string>
@@ -48,6 +53,8 @@ export const ModulePanel = ({
   csvResult,
   csvError,
   onUploadCsv,
+  newTicketAsset,
+  onNewTicketHandled,
   isLoadingModel,
   modelError,
   hiddenCategories,
@@ -94,6 +101,15 @@ export const ModulePanel = ({
           />
         )}
 
+        {moduleId === 'docs' && <DocsPanel elements={elements} />}
+        {moduleId === 'tickets' && (
+          <TicketsPanel
+            elements={elements}
+            newTicketAsset={newTicketAsset}
+            onNewTicketHandled={onNewTicketHandled}
+          />
+        )}
+        {moduleId === 'users' && <UsersPanel />}
         {moduleId === 'connections' && <ConnectionsPanel />}
         {moduleId === 'streams' && <StreamsPanel elements={elements} />}
 
@@ -123,6 +139,9 @@ export const ModulePanel = ({
           'simulation',
           'connections',
           'streams',
+          'docs',
+          'tickets',
+          'users',
         ].includes(moduleId) && (
           <EmptyStatePresentational
             icon={Boxes}
