@@ -24,7 +24,7 @@ const resolveBindings = (
   const meshesByName = new Map<string, THREE.Mesh>()
   scene.traverse((object) => {
     const twin: TwinElement | undefined = object.userData.twin
-    if (twin && (object as THREE.Mesh).isMesh) meshesByName.set(twin.name, object as THREE.Mesh)
+    if (twin) meshesByName.set(twin.name, object as THREE.Mesh)
   })
   return bindings.flatMap((binding) => {
     const mesh = meshesByName.get(binding.elementName)

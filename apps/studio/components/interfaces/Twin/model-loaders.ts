@@ -2,6 +2,7 @@ import * as THREE from 'three'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 
 import type { TwinElement } from './twin.types'
+import { BASE_PATH } from '@/lib/constants'
 
 const isMesh = (object: THREE.Object3D): object is THREE.Mesh =>
   (object as THREE.Mesh).isMesh === true
@@ -37,7 +38,7 @@ export const prepareLoadedModel = (root: THREE.Object3D, source: string) => {
 export const collectElements = (root: THREE.Object3D): TwinElement[] => {
   const elements: TwinElement[] = []
   root.traverse((object) => {
-    if (isMesh(object) && object.userData.twin) elements.push(object.userData.twin)
+    if (object.userData.twin) elements.push(object.userData.twin)
   })
   return elements
 }
@@ -51,23 +52,64 @@ export const loadGlbFile = async (file: File): Promise<THREE.Group> => {
   return prepareLoadedModel(group, file.name) as THREE.Group
 }
 
+type WebIfcModule = typeof import('web-ifc')
+
+/** Maps each element to the storey (level) and space (room) it sits in, from IfcRelContainedInSpatialStructure. */
+const readSpatialStructure = (WebIFC: WebIfcModule, api: InstanceType<WebIfcModule['IfcAPI']>, modelId: number) => {
+  const levelByElement = new Map<number, string>()
+  const roomByElement = new Map<number, string>()
+  const relations = api.GetLineIDsWithType(modelId, WebIFC.IFCRELCONTAINEDINSPATIALSTRUCTURE)
+
+  for (let i = 0; i < relations.size(); i++) {
+    const relation = api.GetLine(modelId, relations.get(i))
+    const structureId: number | undefined = relation?.RelatingStructure?.value
+    if (structureId === undefined) continue
+    const label: string = api.GetLine(modelId, structureId)?.Name?.value ?? ''
+    const target = api.GetLineType(modelId, structureId) === WebIFC.IFCSPACE ? roomByElement : levelByElement
+    const related: { value: number }[] = relation.RelatedElements ?? []
+    related.forEach((reference) => target.set(reference.value, label))
+  }
+  return { levelByElement, roomByElement }
+}
+
 export const loadIfcFile = async (file: File): Promise<THREE.Group> => {
   const WebIFC = await import('web-ifc')
   const api = new WebIFC.IfcAPI()
-  api.SetWasmPath('/wasm/')
+  // `true` = absolute: otherwise web-ifc resolves the path from the JS chunk's folder and 404s.
+  api.SetWasmPath(`${BASE_PATH}/wasm/`, true)
   await api.Init()
 
   const modelId = api.OpenModel(new Uint8Array(await file.arrayBuffer()))
   const group = new THREE.Group()
   group.name = file.name
 
+  const { levelByElement, roomByElement } = readSpatialStructure(WebIFC, api, modelId)
+
   api.StreamAllMeshes(modelId, (flatMesh) => {
     const expressId = flatMesh.expressID
+    // Openings and spaces are helper volumes, not things you would inventory or look at.
+    const typeCode = api.GetLineType(modelId, expressId)
+    if (typeCode === WebIFC.IFCOPENINGELEMENT || typeCode === WebIFC.IFCSPACE) return
     const line = api.GetLine(modelId, expressId)
     const name: string = line?.Name?.value || `Element ${expressId}`
     const category = api
       .GetNameFromTypeCode(api.GetLineType(modelId, expressId))
       .replace(/^IFC/, '')
+
+    // One IFC element can have several geometry pieces (e.g. wall layers): keep them in one group
+    // so the element is a single inventory row.
+    const elementGroup = new THREE.Group()
+    elementGroup.name = name
+    elementGroup.userData.twin = {
+      id: `ifc-${expressId}`,
+      name,
+      level: levelByElement.get(expressId) ?? '',
+      room: roomByElement.get(expressId) ?? '',
+      category,
+      system: '',
+      source: file.name,
+      guid: line?.GlobalId?.value ?? String(expressId),
+    } satisfies TwinElement
 
     for (let i = 0; i < flatMesh.geometries.size(); i++) {
       const placed = flatMesh.geometries.get(i)
@@ -92,24 +134,14 @@ export const loadIfcFile = async (file: File): Promise<THREE.Group> => {
       const mesh = new THREE.Mesh(bufferGeometry, material)
       mesh.name = name
       mesh.applyMatrix4(new THREE.Matrix4().fromArray(placed.flatTransformation))
-      mesh.userData.twin = {
-        id: `ifc-${expressId}-${i}`,
-        name,
-        level: '',
-        room: '',
-        category,
-        system: '',
-        source: file.name,
-        guid: line?.GlobalId?.value ?? String(expressId),
-      } satisfies TwinElement
-      group.add(mesh)
+      elementGroup.add(mesh)
       geometry.delete()
     }
+    if (elementGroup.children.length > 0) group.add(elementGroup)
   })
 
   api.CloseModel(modelId)
-  // IFC is Z-up; three.js is Y-up.
-  group.rotation.x = -Math.PI / 2
+  // web-ifc already returns Y-up geometry (IFC Z becomes Y), so no extra rotation here.
   return group
 }
 
