@@ -30,6 +30,7 @@ import { useOrgUsageQuery } from '@/data/usage/org-usage-query'
 import { useSelectedOrganizationQuery } from '@/hooks/misc/useSelectedOrganization'
 import { useSelectedProjectQuery } from '@/hooks/misc/useSelectedProject'
 import { IS_PLATFORM } from '@/lib/constants'
+import { IS_MOCK_BACKEND } from '@/lib/mock/config'
 import { useTrack } from '@/lib/telemetry/track'
 import { SHORTCUT_IDS } from '@/state/shortcuts/registry'
 import { useIsShortcutEnabled } from '@/state/shortcuts/useIsShortcutEnabled'
@@ -175,7 +176,7 @@ export const LayoutHeader = ({
                       </div>
                     )}
 
-                    {selectedProject && IS_PLATFORM && (
+                    {selectedProject && IS_PLATFORM && !IS_MOCK_BACKEND && (
                       <>
                         <LayoutHeaderDivider />
                         <BranchDropdown />
@@ -216,9 +217,9 @@ export const LayoutHeader = ({
                     ease: 'easeOut',
                   }}
                 >
-                  {IS_PLATFORM && <MergeRequestButton />}
-                  <AdminStudioButton />
-                  <ConnectButton buttonVariant={connectButtonVariant} />
+                  {IS_PLATFORM && !IS_MOCK_BACKEND && <MergeRequestButton />}
+                  {!IS_MOCK_BACKEND && <AdminStudioButton />}
+                  {!IS_MOCK_BACKEND && <ConnectButton buttonVariant={connectButtonVariant} />}
                 </motion.div>
               )}
             </AnimatePresence>
@@ -228,7 +229,7 @@ export const LayoutHeader = ({
             {customHeaderComponents && customHeaderComponents}
             {IS_PLATFORM ? (
               <>
-                <FeedbackDropdown />
+                {!IS_MOCK_BACKEND && <FeedbackDropdown />}
 
                 <div className="flex items-center gap-1 md:gap-2">
                   <CommandMenuTriggerInput
@@ -243,10 +244,10 @@ export const LayoutHeader = ({
                       '[&_.command-shortcut]:shadow-none'
                     )}
                   />
-                  <HelpButton />
-                  <AdvisorButton projectRef={projectRef} />
+                  {!IS_MOCK_BACKEND && <HelpButton />}
+                  {!IS_MOCK_BACKEND && <AdvisorButton projectRef={projectRef} />}
                   <AnimatePresence initial={false}>
-                    {!!projectRef && (
+                    {!!projectRef && !IS_MOCK_BACKEND && (
                       <>
                         <InlineEditorButton />
                         <AssistantButton />

@@ -66,6 +66,8 @@ import { ToastErrorTracker } from '@/lib/toast-errors'
 import { Toaster } from '@/lib/toaster'
 import { AiAssistantStateContextProvider } from '@/state/ai-assistant-state'
 import type { AppPropsWithLayout } from '@/types'
+import { PRODUCT_NAME } from '@/lib/brand'
+import { IS_MOCK_BACKEND } from '@/lib/mock/config'
 
 dayjs.extend(customParseFormat)
 dayjs.extend(utc)
@@ -208,12 +210,14 @@ function CustomApp({ Component, pageProps }: AppPropsWithLayout) {
                       </Head>
                       <MetaFaviconsPagesRouter
                         includeManifest
-                        applicationName="Supabase Studio"
+                        applicationName={PRODUCT_NAME}
                         route={isNonProdEnv ? '/favicon/staging' : '/favicon'}
                       />
                       <TooltipProvider>
                         <RouteValidationWrapper>
-                          <ThemeProvider>
+                          <ThemeProvider
+                            {...(IS_MOCK_BACKEND ? { defaultTheme: 'dark', enableSystem: false } : {})}
+                          >
                             <DevToolbarProvider apiUrl={API_URL}>
                               <AiAssistantStateContextProvider>
                                 <CommandProvider>

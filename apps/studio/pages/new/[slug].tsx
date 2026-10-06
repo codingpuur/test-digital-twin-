@@ -14,7 +14,7 @@ import type { NextPageWithLayout } from '@/types'
 const Wizard: NextPageWithLayout = () => {
   const { appTitle } = useCustomContent(['app:title'])
   const pageTitle = buildStudioPageTitle({
-    section: 'New Project',
+    section: 'New site',
     brand: appTitle || 'Supabase',
   })
 
@@ -35,7 +35,7 @@ const PageLayout = withAuth(({ children }: PropsWithChildren) => {
 })
 
 Wizard.getLayout = (page) => (
-  <DefaultLayout hideMobileMenu headerTitle="New project">
+  <DefaultLayout hideMobileMenu headerTitle="New site">
     <PageLayout>{page}</PageLayout>
   </DefaultLayout>
 )

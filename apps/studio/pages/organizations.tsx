@@ -24,7 +24,7 @@ const OrganizationsPage: NextPageWithLayout = () => {
   const { appTitle } = useCustomContent(['app:title'])
   const [search, setSearch] = useState('')
   const pageTitle = buildStudioPageTitle({
-    section: 'Organizations',
+    section: 'Accounts',
     brand: appTitle || 'Supabase',
   })
 
@@ -56,7 +56,7 @@ const OrganizationsPage: NextPageWithLayout = () => {
             <div className="flex items-center justify-between gap-x-2 md:gap-x-3">
               <Input
                 size="tiny"
-                placeholder="Search for an organization"
+                placeholder="Search for an account"
                 icon={<Search />}
                 className="w-full flex-1 md:w-64"
                 value={search}
@@ -65,7 +65,7 @@ const OrganizationsPage: NextPageWithLayout = () => {
 
               {organizationCreationEnabled && (
                 <Button asChild icon={<Plus />} variant="primary" className="w-min">
-                  <Link href={`/new`}>New organization</Link>
+                  <Link href={`/new`}>New account</Link>
                 </Button>
               )}
             </div>
@@ -99,8 +99,8 @@ const OrganizationsPage: NextPageWithLayout = () => {
 
 OrganizationsPage.getLayout = (page) => (
   <AppLayout>
-    <DefaultLayout hideMobileMenu headerTitle="Organizations">
-      <PageLayout title="Your organizations" className="max-w-[1200px] lg:px-6 mx-auto">
+    <DefaultLayout hideMobileMenu headerTitle="Accounts">
+      <PageLayout title="Your accounts" className="max-w-[1200px] lg:px-6 mx-auto">
         {page}
       </PageLayout>
     </DefaultLayout>

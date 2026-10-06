@@ -48,15 +48,9 @@ export const OrganizationCard = ({
         shouldRenderDefaultDescription ? (
           <div className="flex items-center justify-between text-xs text-foreground-light font-sans">
             <div className="flex items-center gap-x-1">
-              <span>{organization.plan.name} Plan</span>
-              {numProjects > 0 && (
-                <>
-                  <span className="text-foreground-lighter">·</span>
-                  <span>
-                    {numProjects} project{numProjects > 1 ? 's' : ''}
-                  </span>
-                </>
-              )}
+              <span>
+                {numProjects} site{numProjects === 1 ? '' : 's'}
+              </span>
             </div>
             <div className="flex items-center gap-x-2">
               <PartnerIcon organization={organization} />

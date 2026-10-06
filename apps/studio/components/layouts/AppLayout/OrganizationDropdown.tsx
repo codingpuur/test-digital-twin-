@@ -17,6 +17,7 @@ import { useOrganizationsQuery } from '@/data/organizations/organizations-query'
 import { useIsFeatureEnabled } from '@/hooks/misc/useIsFeatureEnabled'
 import { useSelectedOrganizationQuery } from '@/hooks/misc/useSelectedOrganization'
 import { useTrack } from '@/lib/telemetry/track'
+import { IS_MOCK_BACKEND } from '@/lib/mock/config'
 
 interface OrganizationDropdownProps {
   embedded?: boolean
@@ -85,10 +86,10 @@ export const OrganizationDropdown = ({
               !!selectedOrganization ? 'text-foreground' : 'text-foreground-lighter'
             )}
           >
-            {orgName ?? 'Select an organization'}
+            {orgName ?? 'Select an account'}
           </span>
           {!!selectedOrganization && <PartnerIcon organization={selectedOrganization} />}
-          {!!selectedOrganization && (
+          {!!selectedOrganization && !IS_MOCK_BACKEND && (
             <Badge variant="default">{selectedOrganization?.plan.name}</Badge>
           )}
         </>

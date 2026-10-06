@@ -65,8 +65,8 @@ const ProjectsPage: NextPageWithLayout = () => {
 
 ProjectsPage.getLayout = (page) => (
   <DefaultLayout>
-    <OrganizationLayout title="Projects">
-      <PageLayout title="Projects">{page}</PageLayout>
+    <OrganizationLayout title="Sites">
+      <PageLayout title="Sites">{page}</PageLayout>
     </OrganizationLayout>
   </DefaultLayout>
 )

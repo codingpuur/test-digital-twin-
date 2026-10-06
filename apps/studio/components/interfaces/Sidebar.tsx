@@ -415,9 +415,9 @@ const OrganizationLinks = () => {
     'documents',
   ])
 
-  const navMenuItems = [
+  const allNavMenuItems = [
     {
-      label: 'Projects',
+      label: 'Sites',
       href: `/org/${organizationSlug}`,
       key: 'projects',
       icon: <Boxes size={ICON_SIZE} strokeWidth={ICON_STROKE_WIDTH} />,
@@ -456,13 +456,18 @@ const OrganizationLinks = () => {
         ]
       : []),
     {
-      label: 'Organization Settings',
+      label: 'Account settings',
       href: `/org/${organizationSlug}/general`,
       key: 'settings',
       icon: <Settings size={ICON_SIZE} strokeWidth={ICON_STROKE_WIDTH} />,
       shortcutId: SHORTCUT_IDS.NAV_ORG_SETTINGS,
     },
   ]
+
+  // Twin Platform has no Integrations or Usage pages.
+  const navMenuItems = IS_MOCK_BACKEND
+    ? allNavMenuItems.filter((item) => !['integrations', 'usage'].includes(item.key))
+    : allNavMenuItems
 
   if (!organizationSlug) return null
 

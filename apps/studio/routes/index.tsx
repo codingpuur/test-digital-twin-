@@ -1,6 +1,8 @@
 import { createFileRoute, redirect, type AnyRouter } from '@tanstack/react-router'
 
+import { Landing } from '@/components/interfaces/Landing/Landing'
 import { IS_PLATFORM } from '@/lib/constants'
+import { IS_MOCK_BACKEND } from '@/lib/mock/config'
 
 // `/` is never rendered — it always redirects. Mirrors the Next.js
 // `redirects()` rules in next.config.ts: platform sends users to `/org`
@@ -10,7 +12,10 @@ export const Route = createFileRoute('/')({
   validateSearch: (search: Record<string, unknown>) => ({
     next: typeof search.next === 'string' ? search.next : undefined,
   }),
+  component: Landing,
   beforeLoad: ({ search, location }) => {
+    // Mock-backend builds serve the landing page here instead of redirecting.
+    if (IS_MOCK_BACKEND) return
     // Next's redirects() carries the incoming query and hash through to the
     // destination — deep links like `/?next=new-project&projectName=x` must
     // keep `projectName`. Only the consumed `next` param is dropped (and only

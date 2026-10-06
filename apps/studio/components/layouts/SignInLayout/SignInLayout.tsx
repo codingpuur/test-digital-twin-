@@ -1,6 +1,5 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { getAccessToken, useFlag } from 'common'
-import { useTheme } from 'next-themes'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
 import { PropsWithChildren, useEffect, useState } from 'react'
@@ -13,13 +12,12 @@ import {
   LogoPair,
   SupabaseLogo,
 } from '@/components/layouts/InterstitialLayout'
-import { DocsButton } from '@/components/ui/DocsButton'
-import { InlineLink } from '@/components/ui/InlineLink'
+import { BrandLogo } from '@/components/ui/BrandMark'
 import { IdentityProviderIcon } from '@/components/ui/ProviderIcon'
 import { useCustomContent } from '@/hooks/custom-content/useCustomContent'
+import { PRODUCT_DESCRIPTION, PRODUCT_NAME, PRODUCT_TAGLINE } from '@/lib/brand'
 import { useInboundBranding } from '@/hooks/misc/useInboundBranding'
 import { useIsFeatureEnabled } from '@/hooks/misc/useIsFeatureEnabled'
-import { BASE_PATH, DOCS_URL } from '@/lib/constants'
 import { getProviderDisplay } from '@/lib/external-identity-providers'
 import { auth, buildPathWithParams, getReturnToPath } from '@/lib/gotrue'
 
@@ -44,12 +42,7 @@ type SignInLayoutProps = {
 }
 
 const TermsText = () => (
-  <>
-    By continuing, you agree to Supabase’s{' '}
-    <InlineLink href="https://supabase.com/terms">Terms of Service</InlineLink> and{' '}
-    <InlineLink href="https://supabase.com/privacy">Privacy Policy</InlineLink>, and to receive
-    periodic emails with updates.
-  </>
+  <>By continuing, you agree to the {PRODUCT_NAME} Terms of Service and Privacy Policy.</>
 )
 
 export const SignInLayout = ({
@@ -61,16 +54,13 @@ export const SignInLayout = ({
   children,
 }: PropsWithChildren<SignInLayoutProps>) => {
   const router = useRouter()
-  const { resolvedTheme } = useTheme()
   const queryClient = useQueryClient()
   const ongoingIncident = useFlag('ongoingIncident')
 
   const { destination, focusProvider } = useInboundBranding(inboundFlow)
   const { dashboardAuthLogoLinkUrl } = useCustomContent(['dashboard_auth:logo_link_url'])
-  const marketingSiteUrl = dashboardAuthLogoLinkUrl ?? 'https://supabase.com'
+  const marketingSiteUrl = dashboardAuthLogoLinkUrl ?? '/'
 
-  // Addresses hydration issue with `resolvedTheme` as its undefined during SSR and the first (hydrating) client render
-  const [mounted, setMounted] = useState(false)
   const [quote, setQuote] = useState<Quote | null>(null)
 
   const verb = inboundFlow === 'sign-up' ? 'Sign up' : 'Sign in'
@@ -128,8 +118,6 @@ export const SignInLayout = ({
   }, [])
 
   useEffect(() => {
-    setMounted(true)
-
     // Weighted random selection
     // Calculate total weight (default weight is fallbackWeight for tweets without weight specified)
     const fallbackWeight = 1
@@ -174,10 +162,10 @@ export const SignInLayout = ({
             right={<SupabaseLogo />}
           />
         }
-        title={destination ? `Continue to ${destination.displayName}` : `${verb} to Supabase`}
+        title={destination ? `Continue to ${destination.displayName}` : `${verb} to ${PRODUCT_NAME}`}
         description={
           destination
-            ? `${verb} to Supabase using your ${focusProvider.displayName} account`
+            ? `${verb} to ${PRODUCT_NAME} using your ${focusProvider.displayName} account`
             : `Use your ${focusProvider.displayName} account to continue`
         }
         footer={
@@ -211,23 +199,12 @@ export const SignInLayout = ({
           <nav className="relative flex items-center justify-between sm:h-10">
             <div className="flex items-center grow shrink-0 lg:grow-0">
               <div className="flex items-center justify-between w-full md:w-auto">
-                <Link href={logoLinkToMarketingSite ? marketingSiteUrl : '/organizations'}>
-                  <img
-                    src={
-                      mounted && resolvedTheme?.includes('dark')
-                        ? `${BASE_PATH}/img/supabase-dark.svg`
-                        : `${BASE_PATH}/img/supabase-light.svg`
-                    }
-                    alt="Supabase Logo"
-                    className={largeLogo ? 'h-[48px]' : 'h-[24px]'}
-                  />
+                <Link href={logoLinkToMarketingSite ? marketingSiteUrl : '/'}>
+                  <BrandLogo size={largeLogo ? 40 : 26} />
                 </Link>
               </div>
             </div>
 
-            <div className="items-center hidden space-x-3 md:ml-10 md:flex md:pr-4">
-              <DocsButton abbrev={false} href={`${DOCS_URL}`} />
-            </div>
           </nav>
         </div>
 
@@ -267,6 +244,13 @@ export const SignInLayout = ({
           </main>
 
           <aside className="flex-col items-center justify-center flex-1 shrink hidden basis-1/4 xl:flex">
+            {!showTestimonial && (
+              <div className="flex max-w-lg flex-col gap-y-4 px-8">
+                <BrandLogo size={44} showName={false} />
+                <p className="text-3xl text-balance">{PRODUCT_TAGLINE}</p>
+                <p className="text-foreground-light text-balance">{PRODUCT_DESCRIPTION}</p>
+              </div>
+            )}
             {quote !== null && showTestimonial && (
               <div className="relative flex flex-col gap-6">
                 <div className="absolute select-none -top-12 -left-11">

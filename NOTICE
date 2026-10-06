@@ -1,0 +1,20 @@
+Twin Platform
+=============
+
+This product is built on top of Supabase Studio and the Supabase UI packages
+(https://github.com/supabase/supabase), which are licensed under the Apache License,
+Version 2.0. A copy of the license is in the LICENSE file.
+
+Copyright (c) Supabase, Inc. for the portions derived from the Supabase repository.
+
+Changes: files under apps/studio and packages/ have been modified, and new files added, to
+turn the Studio dashboard into a digital twin platform (mock backend, 3D workspace,
+dashboards, timeline, animation and simulation, landing page, branding). Files that were
+removed from the original repository include the docs, marketing, knowledge base, learn,
+design system and UI library apps.
+
+"Supabase" and the Supabase logo are trademarks of Supabase, Inc. and are not licensed
+under Apache 2.0. This product is not affiliated with or endorsed by Supabase.
+
+Design inspiration (no code or assets copied): Autodesk Tandem, AVEVA, IBM Maximo,
+Netdata. These names are trademarks of their respective owners.

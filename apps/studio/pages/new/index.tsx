@@ -20,7 +20,7 @@ const PlatformWizard = () => {
   const [intent, setIntent] = useState<SetupIntentResponse>()
   const { appTitle } = useCustomContent(['app:title'])
   const pageTitle = buildStudioPageTitle({
-    section: 'New Organization',
+    section: 'New account',
     brand: appTitle || 'Supabase',
   })
 
@@ -116,7 +116,7 @@ const Wizard: NextPageWithLayout = () => (IS_MOCK_BACKEND ? <NewAccountForm /> :
 
 Wizard.getLayout = (page) => (
   <AppLayout>
-    <DefaultLayout hideMobileMenu headerTitle="New organization">
+    <DefaultLayout hideMobileMenu headerTitle="New account">
       <WizardLayout>{page}</WizardLayout>
     </DefaultLayout>
   </AppLayout>

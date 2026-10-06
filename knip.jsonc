@@ -9,9 +9,6 @@
     // skip supabase functions
     "supabase/functions/**",
     "**/*.test.ts",
-    // ignore registry blocks in ui-library
-    "apps/ui-library/registry/default/**",
-    "apps/ui-library/contentlayer.config.js",
   ],
   "workspaces": {
     "apps/studio": {

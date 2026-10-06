@@ -14,6 +14,7 @@ import { BannerPrivacyPolicyUpdate } from '@/components/ui/BannerStack/Banners/B
 import { BANNER_ID, useBannerStack } from '@/components/ui/BannerStack/BannerStackProvider'
 import { useLocalStorageQuery } from '@/hooks/misc/useLocalStorage'
 import { useTrack } from '@/lib/telemetry/track'
+import { IS_MOCK_BACKEND } from '@/lib/mock/config'
 
 // Update this whenever the banner content changes so old client bundles stop
 // displaying the notice after the removal date passes.
@@ -37,7 +38,7 @@ export const AppBannerWrapper = ({ children }: PropsWithChildren<{}>) => {
   useEffect(() => {
     if (!isPrivacyPolicyDismissalLoaded || pathname == null) return
 
-    if (isOrganizationLandingPath(pathname) && !privacyPolicyUpdateAcknowledged) {
+    if (!IS_MOCK_BACKEND && isOrganizationLandingPath(pathname) && !privacyPolicyUpdateAcknowledged) {
       addBanner({
         id: BANNER_ID.PRIVACY_POLICY_UPDATE,
         isDismissed: false,

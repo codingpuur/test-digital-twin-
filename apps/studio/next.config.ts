@@ -53,6 +53,8 @@ const marketplaceApiProtocol: 'http' | 'https' | null =
 // wrapper functions (bundle-analyzer, sentry) resolve their `next` peer
 // types to a different major version than studio's own next dependency.
 const nextConfig = {
+  // Stop `next dev` rewriting AGENTS.md on every start.
+  agentRules: false,
   basePath: process.env.NEXT_PUBLIC_BASE_PATH,
   assetPrefix: getAssetPrefix(),
   output: 'standalone',

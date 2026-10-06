@@ -82,7 +82,7 @@ export const HomePageActions = ({ slug: _slug, hideNewProject = false }: HomePag
       <div className="flex flex-col gap-2 min-w-0 flex-1 basis-full md:basis-auto sm:flex-row sm:flex-wrap sm:items-center">
         <Input
           ref={searchInputRef}
-          placeholder="Search for a project"
+          placeholder="Search for a site"
           icon={<Search />}
           size="tiny"
           className="w-full sm:w-32 md:w-64"
@@ -173,7 +173,7 @@ export const HomePageActions = ({ slug: _slug, hideNewProject = false }: HomePag
             side="bottom"
           >
             <Button asChild icon={<Plus />} variant="primary" size="tiny">
-              <Link href={`/new/${slug}`}>New project</Link>
+              <Link href={`/new/${slug}`}>New site</Link>
             </Button>
           </Shortcut>
         )}

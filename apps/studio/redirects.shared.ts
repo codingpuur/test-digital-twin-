@@ -21,7 +21,10 @@ export const PLATFORM_REDIRECTS: StudioRedirect[] = [
     destination: '/new/new-project',
     permanent: false,
   },
-  { source: '/', destination: '/org', permanent: false },
+  // Mock-backend builds serve a public landing page at `/` instead.
+  ...(process.env.NEXT_PUBLIC_MOCK_BACKEND === 'true'
+    ? []
+    : [{ source: '/', destination: '/org', permanent: false }]),
   { source: '/register', destination: '/sign-up', permanent: false },
   { source: '/signup', destination: '/sign-up', permanent: false },
   { source: '/signin', destination: '/sign-in', permanent: false },
