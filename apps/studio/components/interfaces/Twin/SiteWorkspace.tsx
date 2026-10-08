@@ -32,6 +32,7 @@ import { ViewsPanel } from './views/ViewsPanel'
 import { useVoiceCommands } from './voice/useVoiceCommands'
 import { VoiceAgent } from './voice/VoiceAgent'
 import { TimelineBar } from '@/components/ui/Timeline/TimelineBar'
+import { TimelinePill } from '@/components/ui/Timeline/TimelinePill'
 import { useTimeline } from '@/components/ui/Timeline/useTimeline'
 import { useTwinStreamsQuery } from '@/data/twin/twin-queries'
 import {
@@ -76,6 +77,8 @@ export const SiteWorkspace = () => {
   const [bottomTab, setBottomTab] = useState<BottomTab>('inventory')
 
   const timeline = useTimeline()
+  // Folded to a faint pill over the 3D view by default; the pill's expand button opens the full bar.
+  const [isTimelineOpen, setIsTimelineOpen] = useState(false)
   const simulation = useSimulation()
   const [colorByStatus, setColorByStatus] = useState(true)
   const [storedBindings, setStoredBindings] = useLocalStorage<AnimationBinding[]>(
@@ -310,10 +313,9 @@ export const SiteWorkspace = () => {
           <ResizablePanelGroup orientation="vertical" className="h-full w-full">
             <ResizablePanel id="twin-viewer" defaultSize="58%" minSize="25%">
               <div className="flex h-full w-full flex-col bg-surface-100">
-                {isSimulation ? (
-                  <SimulationBar simulation={simulation} />
-                ) : (
-                  <TimelineBar timeline={timeline} />
+                {isSimulation && <SimulationBar simulation={simulation} />}
+                {!isSimulation && isTimelineOpen && (
+                  <TimelineBar timeline={timeline} onCollapse={() => setIsTimelineOpen(false)} />
                 )}
                 <div className="relative min-h-0 flex-1">
                   <PanelToggles
@@ -343,12 +345,29 @@ export const SiteWorkspace = () => {
                       onClose={() => setIsViewsOpen(false)}
                     />
                   )}
-                  <VoiceAgent
-                    onCommand={voice.handleCommand}
-                    isAwaitingConfirmation={voice.pendingTicketTag !== null}
-                    hasHighlights={voice.alertIds.length > 0 || voice.scoreColors !== null}
-                    onClear={voice.clear}
-                  />
+                  <div className="absolute left-3 top-3 z-10 flex max-w-[calc(100%-24px)] flex-col items-start gap-y-2">
+                    {!isSimulation && !isTimelineOpen && (
+                      <TimelinePill timeline={timeline} onExpand={() => setIsTimelineOpen(true)} />
+                    )}
+                    <VoiceAgent
+                      onCommand={voice.handleCommand}
+                      isAwaitingConfirmation={voice.pendingTicketTag !== null}
+                      hasHighlights={voice.alertIds.length > 0 || voice.scoreColors !== null}
+                      onClear={voice.clear}
+                    />
+                    {isSimulation && simulation.snapshot.alarms.length > 0 && (
+                      <div className="pointer-events-none flex flex-col items-start gap-y-1.5">
+                        {simulation.snapshot.alarms.map((alarm) => (
+                          <div
+                            key={alarm}
+                            className="animate-pulse rounded-md border border-destructive bg-destructive-200 px-2.5 py-1 text-xs text-destructive"
+                          >
+                            ⚠ {alarm}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                   <TwinViewer
                     scene={scene}
                     selectedId={selectedId}
@@ -361,18 +380,6 @@ export const SiteWorkspace = () => {
                     showLabels={isDemoModel}
                     onSelect={setSelectedId}
                   />
-                  {isSimulation && simulation.snapshot.alarms.length > 0 && (
-                    <div className="pointer-events-none absolute left-3 top-16 flex flex-col items-start gap-y-1.5">
-                      {simulation.snapshot.alarms.map((alarm) => (
-                        <div
-                          key={alarm}
-                          className="animate-pulse rounded-md border border-destructive bg-destructive-200 px-2.5 py-1 text-xs text-destructive"
-                        >
-                          ⚠ {alarm}
-                        </div>
-                      ))}
-                    </div>
-                  )}
                   <div className="absolute bottom-3 left-3 flex flex-col gap-y-2 rounded-md border bg-surface-100/90 px-3 py-2 text-xs">
                     <label className="flex items-center gap-x-2">
                       <Switch checked={colorByStatus} onCheckedChange={setColorByStatus} />

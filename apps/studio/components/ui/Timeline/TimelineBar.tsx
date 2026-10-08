@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight, Minus, Pause, Play, Plus } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Minimize2, Minus, Pause, Play, Plus } from 'lucide-react'
 import { Button, cn, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from 'ui'
 
 import { TIMELINE_RANGE_OPTIONS, TIMELINE_SPEEDS, type TimelineSpeed } from './Timeline.types'
@@ -8,6 +8,8 @@ import type { TimelineController } from './useTimeline'
 type TimelineBarProps = {
   timeline: TimelineController
   className?: string
+  /** When given, a button folds the bar down to a `TimelinePill`. */
+  onCollapse?: () => void
 }
 
 const formatCursor = (time: number) =>
@@ -21,7 +23,7 @@ const formatCursor = (time: number) =>
   })
 
 /** Date, live toggle, scrubber, range, zoom and playback controls for a `useTimeline` controller. */
-export const TimelineBar = ({ timeline, className }: TimelineBarProps) => {
+export const TimelineBar = ({ timeline, className, onCollapse }: TimelineBarProps) => {
   const {
     cursor,
     isLive,
@@ -44,6 +46,15 @@ export const TimelineBar = ({ timeline, className }: TimelineBarProps) => {
   return (
     <div className={cn('flex flex-col gap-y-1 border-b bg-surface-100 px-4 pt-2', className)}>
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+        {onCollapse && (
+          <Button
+            size="tiny"
+            variant="text"
+            aria-label="Close timeline"
+            icon={<Minimize2 size={14} />}
+            onClick={onCollapse}
+          />
+        )}
         <span className="text-sm">{formatCursor(cursor)}</span>
         <Button
           size="tiny"

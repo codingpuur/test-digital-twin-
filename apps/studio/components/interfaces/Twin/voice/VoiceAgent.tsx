@@ -52,7 +52,7 @@ export const VoiceAgent = ({
     : (speech.error ?? exchange?.heard ?? null)
 
   return (
-    <div className="absolute left-3 top-3 z-10 flex w-[min(340px,calc(100%-24px))] flex-col gap-y-2">
+    <div className="flex w-[340px] max-w-full flex-col gap-y-2">
       <div className="flex items-center gap-x-2 rounded-full border bg-surface-100/95 p-1.5 shadow-lg backdrop-blur">
         <Button
           variant={speech.isListening ? 'danger' : 'primary'}
