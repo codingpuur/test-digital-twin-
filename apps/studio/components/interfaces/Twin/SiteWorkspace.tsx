@@ -25,10 +25,15 @@ import { applyStreamColors, getStreamReadings, groupStreamsByTag } from './strea
 import { DEFAULT_TWIN_MODULE } from './twin.types'
 import { useCollapsiblePanel } from './useCollapsiblePanel'
 import { useTwinStore } from './useTwinStore'
+import { useVoiceCommands } from './voice/useVoiceCommands'
+import { VoiceAgent } from './voice/VoiceAgent'
 import { TimelineBar } from '@/components/ui/Timeline/TimelineBar'
 import { useTimeline } from '@/components/ui/Timeline/useTimeline'
 import { useTwinStreamsQuery } from '@/data/twin/twin-queries'
-import { useTwinTicketsQuery } from '@/data/twin/twin-workspace-queries'
+import {
+  useCreateTwinTicketMutation,
+  useTwinTicketsQuery,
+} from '@/data/twin/twin-workspace-queries'
 import { useLocalStorage } from '@/hooks/misc/useLocalStorage'
 
 const TwinViewer = dynamic(() => import('./TwinViewer').then((mod) => mod.TwinViewer), {
@@ -130,6 +135,17 @@ export const SiteWorkspace = () => {
   const colorKey = JSON.stringify(colorsNow)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const statusColors = useMemo(() => colorsNow, [colorKey])
+
+  const createTicket = useCreateTwinTicketMutation(ref)
+  const voice = useVoiceCommands({
+    elements,
+    isDemoModel,
+    streamsByTag,
+    onSelect: setSelectedId,
+    onJumpTime: timeline.setCursor,
+    onGoLive: timeline.goLive,
+    onCreateTicket: (input) => createTicket.mutate(input),
+  })
 
   // Switching to simulation shows its charts; switching back returns to the inventory.
   useEffect(() => {
@@ -246,10 +262,18 @@ export const SiteWorkspace = () => {
                 )}
                 <div className="relative min-h-0 flex-1">
                   <PanelToggles left={leftPanel} right={rightPanel} bottom={bottomPanel} />
+                  <VoiceAgent
+                    onCommand={voice.handleCommand}
+                    isAwaitingConfirmation={voice.pendingTicketTag !== null}
+                    hasHighlights={voice.alertIds.length > 0 || voice.scoreColors !== null}
+                    onClear={voice.clear}
+                  />
                   <TwinViewer
                     scene={scene}
                     selectedId={selectedId}
-                    colorOverrides={statusColors}
+                    colorOverrides={voice.scoreColors ?? statusColors}
+                    alertIds={voice.alertIds}
+                    focusRequest={voice.focusRequest}
                     bindings={bindings}
                     getSignals={getSignals}
                     showLabels={isDemoModel}

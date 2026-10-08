@@ -8,40 +8,8 @@ import { AnimationDriver } from './simulation/AnimationDriver'
 import { LabelOverlay, LabelProjector, resolveLabelTargets } from './simulation/SignalLabels'
 import type { Signals } from './simulation/signals'
 import type { TwinElement } from './twin.types'
-
-const SELECTED_EMISSIVE = new THREE.Color('#3ecf8e')
-const NO_EMISSIVE = new THREE.Color('#000000')
-
-/** The element an object belongs to: itself, or the nearest ancestor that carries element data. */
-const findTwin = (object: THREE.Object3D): TwinElement | undefined => {
-  let current: THREE.Object3D | null = object
-  while (current && !current.userData.twin) current = current.parent
-  return current?.userData.twin
-}
-
-const applyColorOverrides = (root: THREE.Object3D, overrides: Record<string, string> | null) => {
-  root.traverse((object) => {
-    const mesh = object as THREE.Mesh
-    const material = mesh.material as THREE.MeshStandardMaterial | undefined
-    if (!mesh.isMesh || !material?.color) return
-    // Remember the model's own colour the first time we touch it.
-    mesh.userData.baseColor ??= material.color.getHex()
-    const override = overrides?.[findTwin(mesh)?.id ?? '']
-    material.color.set(override ?? mesh.userData.baseColor)
-  })
-}
-
-const highlightSelection = (root: THREE.Object3D, selectedId: string | null) => {
-  root.traverse((object) => {
-    const mesh = object as THREE.Mesh
-    const material = mesh.material as THREE.MeshStandardMaterial | undefined
-    if (!mesh.isMesh || !material?.emissive) return
-    const twin = findTwin(mesh)
-    const isSelected = !!twin && twin.id === selectedId
-    material.emissive.copy(isSelected ? SELECTED_EMISSIVE : NO_EMISSIVE)
-    material.emissiveIntensity = isSelected ? 0.8 : 0
-  })
-}
+import { applyColorOverrides, highlightSelection } from './viewer-helpers'
+import { AlertBlink, CameraFocus, type FocusRequest } from './ViewerEffects'
 
 type TwinViewerProps = {
   scene: THREE.Object3D
@@ -52,6 +20,10 @@ type TwinViewerProps = {
   /** Latest signal values; read every frame by the animation driver. */
   getSignals?: () => Signals
   showLabels?: boolean
+  /** Elements that blink red, e.g. the ones the voice agent says are in danger. */
+  alertIds?: string[]
+  /** Asks the camera to fly to an element (or back to the whole model when `id` is null). */
+  focusRequest?: FocusRequest | null
   onSelect: (id: string | null) => void
 }
 
@@ -62,6 +34,8 @@ export const TwinViewer = ({
   bindings = [],
   getSignals,
   showLabels = true,
+  alertIds = [],
+  focusRequest = null,
   onSelect,
 }: TwinViewerProps) => {
   useEffect(() => {
@@ -105,7 +79,14 @@ export const TwinViewer = ({
         />
         <Bounds key={scene.uuid} fit observe margin={1.3}>
           <primitive object={scene} onClick={handleClick} />
+          <CameraFocus scene={scene} request={focusRequest} />
         </Bounds>
+        <AlertBlink
+          scene={scene}
+          ids={alertIds}
+          selectedId={selectedId}
+          colorOverrides={colorOverrides}
+        />
         {getSignals && (
           <AnimationDriver
             scene={scene}
