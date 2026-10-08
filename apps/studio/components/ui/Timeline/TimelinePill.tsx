@@ -1,6 +1,7 @@
 import { Calendar, Maximize2 } from 'lucide-react'
 import { cn } from 'ui'
 
+import { formatTimelineDate, formatTimelineTime } from './Timeline.utils'
 import type { TimelineController } from './useTimeline'
 
 type TimelinePillProps = {
@@ -8,22 +9,6 @@ type TimelinePillProps = {
   onExpand: () => void
   className?: string
 }
-
-const formatDate = (time: number) =>
-  new Date(time).toLocaleDateString([], {
-    weekday: 'long',
-    month: 'long',
-    day: 'numeric',
-    year: 'numeric',
-  })
-
-/** "5:26 AM GMT+5:30": the time and the offset, so a reading is never ambiguous. */
-const formatTime = (time: number) =>
-  new Intl.DateTimeFormat([], {
-    hour: 'numeric',
-    minute: '2-digit',
-    timeZoneName: 'shortOffset',
-  }).format(time)
 
 /**
  * The timeline folded down to one line over a view: faint until hovered, and the expand button
@@ -52,8 +37,8 @@ export const TimelinePill = ({ timeline, onExpand, className }: TimelinePillProp
       <span className="h-5 w-px shrink-0 bg-border" />
       <span className="flex min-w-0 items-center gap-x-2 truncate">
         <Calendar size={16} className="shrink-0 text-foreground-light" />
-        <span className="truncate text-foreground-light">{formatDate(cursor)}</span>
-        <span className="shrink-0 font-medium">{formatTime(cursor)}</span>
+        <span className="truncate text-foreground-light">{formatTimelineDate(cursor)}</span>
+        <span className="shrink-0 font-medium">{formatTimelineTime(cursor)}</span>
       </span>
       <span className="h-5 w-px shrink-0 bg-border" />
       <button

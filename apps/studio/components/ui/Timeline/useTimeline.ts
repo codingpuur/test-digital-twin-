@@ -5,7 +5,7 @@ import {
   TIMELINE_RANGE_OPTIONS,
   type TimelineSpeed,
 } from './Timeline.types'
-import { clamp, clampRange } from './Timeline.utils'
+import { advancePlayback, clamp, clampRange } from './Timeline.utils'
 
 type TimelineState = {
   cursor: number
@@ -13,6 +13,7 @@ type TimelineState = {
   rangeMs: number
   isLive: boolean
   isPlaying: boolean
+  isLooping: boolean
   speed: TimelineSpeed
 }
 
@@ -41,6 +42,7 @@ export const useTimeline = ({
       rangeMs: clampRange(defaultRangeMs),
       isLive: true,
       isPlaying: false,
+      isLooping: false,
       speed: 1,
     }
   })
@@ -57,7 +59,7 @@ export const useTimeline = ({
     return () => clearInterval(timer)
   }, [isLive, isPlaying])
 
-  // Playback: advance the cursor every frame; reaching "now" returns to live.
+  // Playback: advance the cursor every frame. At the end it loops (if on) or returns to live.
   useEffect(() => {
     if (!isPlaying) return
     let frame = 0
@@ -68,18 +70,10 @@ export const useTimeline = ({
       last = timestamp
       setState((previous) => {
         const now = getNowRef.current()
+        // At 1x the cursor crosses the visible range in PLAYBACK_SECONDS_PER_RANGE seconds.
         const step =
-          (previous.rangeMs / PLAYBACK_SECONDS_PER_RANGE) * previous.speed * elapsedSeconds * 1000
-        const next = previous.cursor + step
-        if (next >= now) {
-          return { ...previous, cursor: now, windowEnd: now, isLive: true, isPlaying: false }
-        }
-        // Keep the cursor inside the visible window while it moves.
-        const windowEnd =
-          next > previous.windowEnd
-            ? Math.min(now, next + previous.rangeMs / 4)
-            : previous.windowEnd
-        return { ...previous, cursor: next, windowEnd }
+          (previous.rangeMs / PLAYBACK_SECONDS_PER_RANGE) * previous.speed * elapsedSeconds
+        return { ...previous, ...advancePlayback(previous, step, now) }
       })
       frame = requestAnimationFrame(tick)
     }
@@ -115,6 +109,10 @@ export const useTimeline = ({
     setState((previous) => ({ ...previous, isPlaying: !previous.isPlaying, isLive: false }))
   }, [])
 
+  const toggleLoop = useCallback(() => {
+    setState((previous) => ({ ...previous, isLooping: !previous.isLooping }))
+  }, [])
+
   const setSpeed = useCallback((speed: TimelineSpeed) => {
     setState((previous) => ({ ...previous, speed }))
   }, [])
@@ -144,6 +142,7 @@ export const useTimeline = ({
     cursor: state.cursor,
     isLive: state.isLive,
     isPlaying: state.isPlaying,
+    isLooping: state.isLooping,
     speed: state.speed,
     rangeMs: state.rangeMs,
     windowStart: state.windowEnd - state.rangeMs,
@@ -151,6 +150,7 @@ export const useTimeline = ({
     setCursor,
     goLive,
     togglePlay,
+    toggleLoop,
     setSpeed,
     setRangeMs,
     zoom,

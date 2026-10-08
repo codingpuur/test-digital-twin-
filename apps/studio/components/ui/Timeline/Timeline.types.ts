@@ -20,8 +20,11 @@ export const MAX_TIMELINE_RANGE_MS = 30 * DAY
 /** Playing at 1x crosses the visible range in this many seconds. */
 export const PLAYBACK_SECONDS_PER_RANGE = 60
 
+export type TimelineTickLevel = 'day' | 'major' | 'minor'
+
 export type TimelineTick = {
   time: number
-  isMajor: boolean
+  /** day: a local midnight (tall, dated); major: a labelled step; minor: a small unlabelled mark. */
+  level: TimelineTickLevel
   label: string
 }

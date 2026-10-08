@@ -1,7 +1,18 @@
-import { ChevronLeft, ChevronRight, Minimize2, Minus, Pause, Play, Plus } from 'lucide-react'
+import {
+  Calendar,
+  ChevronLeft,
+  ChevronRight,
+  CircleMinus,
+  CirclePlus,
+  Minimize2,
+  Pause,
+  Play,
+  Repeat,
+} from 'lucide-react'
 import { Button, cn, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from 'ui'
 
 import { TIMELINE_RANGE_OPTIONS, TIMELINE_SPEEDS, type TimelineSpeed } from './Timeline.types'
+import { formatTimelineDate, formatTimelineTime } from './Timeline.utils'
 import { TimelineScale } from './TimelineScale'
 import type { TimelineController } from './useTimeline'
 
@@ -12,22 +23,13 @@ type TimelineBarProps = {
   onCollapse?: () => void
 }
 
-const formatCursor = (time: number) =>
-  new Date(time).toLocaleString([], {
-    weekday: 'long',
-    month: 'long',
-    day: 'numeric',
-    year: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-  })
-
 /** Date, live toggle, scrubber, range, zoom and playback controls for a `useTimeline` controller. */
 export const TimelineBar = ({ timeline, className, onCollapse }: TimelineBarProps) => {
   const {
     cursor,
     isLive,
     isPlaying,
+    isLooping,
     speed,
     rangeMs,
     windowStart,
@@ -35,6 +37,7 @@ export const TimelineBar = ({ timeline, className, onCollapse }: TimelineBarProp
     setCursor,
     goLive,
     togglePlay,
+    toggleLoop,
     setSpeed,
     setRangeMs,
     zoom,
@@ -45,7 +48,7 @@ export const TimelineBar = ({ timeline, className, onCollapse }: TimelineBarProp
 
   return (
     <div className={cn('flex flex-col gap-y-1 border-b bg-surface-100 px-4 pt-2', className)}>
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+      <div className="flex items-center gap-x-2">
         {onCollapse && (
           <Button
             size="tiny"
@@ -55,7 +58,15 @@ export const TimelineBar = ({ timeline, className, onCollapse }: TimelineBarProp
             onClick={onCollapse}
           />
         )}
-        <span className="text-sm">{formatCursor(cursor)}</span>
+        <span className="h-5 w-px bg-border" />
+        <span className="flex min-w-0 items-center gap-x-2 text-sm">
+          <Calendar size={16} className="text-foreground-light" />
+          <span className="truncate text-foreground-light">{formatTimelineDate(cursor)}</span>
+          <span className="shrink-0 whitespace-nowrap font-medium">
+            {formatTimelineTime(cursor)}
+          </span>
+        </span>
+        <span className="h-5 w-px bg-border" />
         <Button
           size="tiny"
           variant={isLive ? 'primary' : 'default'}
@@ -75,7 +86,7 @@ export const TimelineBar = ({ timeline, className, onCollapse }: TimelineBarProp
           value={rangeValue ? String(rangeValue) : undefined}
           onValueChange={(value) => setRangeMs(Number(value))}
         >
-          <SelectTrigger className="w-40" size="tiny">
+          <SelectTrigger className="w-36 shrink-0" size="tiny">
             <SelectValue placeholder="Custom range" />
           </SelectTrigger>
           <SelectContent>
@@ -90,14 +101,14 @@ export const TimelineBar = ({ timeline, className, onCollapse }: TimelineBarProp
           size="tiny"
           variant="text"
           aria-label="Zoom out"
-          icon={<Minus size={14} />}
+          icon={<CircleMinus size={16} />}
           onClick={() => zoom(2)}
         />
         <Button
           size="tiny"
           variant="text"
           aria-label="Zoom in"
-          icon={<Plus size={14} />}
+          icon={<CirclePlus size={16} />}
           onClick={() => zoom(0.5)}
         />
         <Button
@@ -107,11 +118,21 @@ export const TimelineBar = ({ timeline, className, onCollapse }: TimelineBarProp
           icon={isPlaying ? <Pause size={14} /> : <Play size={14} />}
           onClick={togglePlay}
         />
+        <Button
+          size="tiny"
+          variant="text"
+          aria-label={isLooping ? 'Loop on' : 'Loop off'}
+          aria-pressed={isLooping}
+          title="Loop the visible range while playing"
+          className={cn(isLooping && 'text-brand')}
+          icon={<Repeat size={14} />}
+          onClick={toggleLoop}
+        />
         <Select
           value={String(speed)}
           onValueChange={(value) => setSpeed(Number(value) as TimelineSpeed)}
         >
-          <SelectTrigger className="w-16" size="tiny" aria-label="Playback speed">
+          <SelectTrigger className="w-16 shrink-0" size="tiny" aria-label="Playback speed">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -138,6 +159,7 @@ export const TimelineBar = ({ timeline, className, onCollapse }: TimelineBarProp
           cursor={cursor}
           isLive={isLive}
           onCursorChange={setCursor}
+          onGoLive={goLive}
         />
         <Button
           size="tiny"
