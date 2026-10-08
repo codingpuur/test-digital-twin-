@@ -22,6 +22,7 @@ import { SimulationResults } from './simulation/SimulationResults'
 import { useSimulation } from './simulation/useSimulation'
 import { getStatusColors, getUnlinkedColors, STATUS_COLORS } from './status-colors'
 import { applyStreamColors, getStreamReadings, groupStreamsByTag } from './stream-bridge'
+import { StreamsTable } from './StreamsTable'
 import { DEFAULT_TWIN_MODULE } from './twin.types'
 import { useCollapsiblePanel } from './useCollapsiblePanel'
 import { useTwinStore } from './useTwinStore'
@@ -47,7 +48,7 @@ const TwinViewer = dynamic(() => import('./TwinViewer').then((mod) => mod.TwinVi
 
 const DEMO_MODEL_NAME = 'Demo pumping station'
 
-type BottomTab = 'inventory' | 'simulation'
+type BottomTab = 'inventory' | 'streams' | 'simulation'
 
 export const SiteWorkspace = () => {
   const { ref } = useParams()
@@ -68,7 +69,8 @@ export const SiteWorkspace = () => {
   const store = useTwinStore(ref)
   const leftPanel = useCollapsiblePanel()
   const rightPanel = useCollapsiblePanel()
-  const bottomPanel = useCollapsiblePanel()
+  // The drawer stays closed until something needs it: the Streams item in the sidebar, or a simulation.
+  const bottomPanel = useCollapsiblePanel({ startCollapsed: true, openPercent: 42 })
   const streamsQuery = useTwinStreamsQuery(ref)
   // Revision of the saved model already shown, so restoring (or our own upload) is not re-applied.
   const shownRevision = useRef<number | null>(null)
@@ -205,10 +207,24 @@ export const SiteWorkspace = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [viewParam, viewerApi, store.isRestoring, views.length])
 
-  // Switching to simulation shows its charts; switching back returns to the inventory.
+  // Simulation shows its charts in the drawer; leaving it returns to the inventory.
   useEffect(() => {
-    setBottomTab(isSimulation ? 'simulation' : 'inventory')
+    if (isSimulation) {
+      setBottomTab('simulation')
+      bottomPanel.expand()
+    } else {
+      setBottomTab((tab) => (tab === 'simulation' ? 'inventory' : tab))
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isSimulation])
+
+  // Opening Streams in the sidebar opens the drawer on the streams table.
+  useEffect(() => {
+    if (moduleId !== 'streams') return
+    setBottomTab('streams')
+    bottomPanel.expand()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [moduleId])
 
   const showModel = (nextScene: THREE.Object3D, name: string, revision: number | null) => {
     shownRevision.current = revision
@@ -311,7 +327,7 @@ export const SiteWorkspace = () => {
         <ResizableHandle withHandle />
         <ResizablePanel id="twin-main">
           <ResizablePanelGroup orientation="vertical" className="h-full w-full">
-            <ResizablePanel id="twin-viewer" defaultSize="58%" minSize="25%">
+            <ResizablePanel id="twin-viewer" defaultSize="100%" minSize="25%">
               <div className="flex h-full w-full flex-col bg-surface-100">
                 {isSimulation && <SimulationBar simulation={simulation} />}
                 {!isSimulation && isTimelineOpen && (
@@ -405,13 +421,13 @@ export const SiteWorkspace = () => {
             <ResizableHandle withHandle />
             <ResizablePanel
               id="twin-bottom"
-              defaultSize="42%"
+              defaultSize="0%"
               minSize="15%"
               {...bottomPanel.panelProps}
             >
               <div className="flex h-full flex-col bg-surface-100">
                 <div className="flex gap-x-1 border-b px-3">
-                  {(['inventory', 'simulation'] as const).map((tab) => (
+                  {(['inventory', 'streams', 'simulation'] as const).map((tab) => (
                     <button
                       key={tab}
                       type="button"
@@ -435,6 +451,7 @@ export const SiteWorkspace = () => {
                       onSelect={setSelectedId}
                     />
                   )}
+                  {bottomTab === 'streams' && <StreamsTable />}
                   {bottomTab === 'simulation' && (
                     <SimulationResults
                       history={simulation.snapshot.history}
