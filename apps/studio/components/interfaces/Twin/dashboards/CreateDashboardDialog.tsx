@@ -43,12 +43,15 @@ type CreateDashboardDialogProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
   onCreate: (values: CreateDashboardValues) => void
+  /** Saved 3D views the dashboard can be about. */
+  views: { id: string; name: string }[]
 }
 
 export const CreateDashboardDialog = ({
   open,
   onOpenChange,
   onCreate,
+  views,
 }: CreateDashboardDialogProps) => {
   const form = useForm<CreateDashboardValues>({
     resolver: zodResolver(schema),
@@ -135,6 +138,11 @@ export const CreateDashboardDialog = ({
                       </FormControl>
                       <SelectContent>
                         <SelectItem value="all">All twin data</SelectItem>
+                        {views.map((view) => (
+                          <SelectItem key={view.id} value={view.id}>
+                            {view.name}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </FormItemLayout>

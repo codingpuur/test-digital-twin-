@@ -25,6 +25,10 @@ import { applyStreamColors, getStreamReadings, groupStreamsByTag } from './strea
 import { DEFAULT_TWIN_MODULE } from './twin.types'
 import { useCollapsiblePanel } from './useCollapsiblePanel'
 import { useTwinStore } from './useTwinStore'
+import type { ViewerApi } from './ViewerBridge'
+import { useViews } from './views/useViews'
+import type { TwinView, ViewSnapshot } from './views/views.types'
+import { ViewsPanel } from './views/ViewsPanel'
 import { useVoiceCommands } from './voice/useVoiceCommands'
 import { VoiceAgent } from './voice/VoiceAgent'
 import { TimelineBar } from '@/components/ui/Timeline/TimelineBar'
@@ -147,6 +151,57 @@ export const SiteWorkspace = () => {
     onCreateTicket: (input) => createTicket.mutate(input),
   })
 
+  // Saved views: camera and filters, kept like dashboards. `?view=` opens one (from a dashboard).
+  const { views, addView, updateView, renameView, deleteView } = useViews(ref ?? '')
+  const [viewerApi, setViewerApi] = useState<ViewerApi | null>(null)
+  const [isViewsOpen, setIsViewsOpen] = useState(false)
+  const [activeViewId, setActiveViewId] = useState<string | null>(null)
+  const [viewParam, setViewParam] = useQueryState('view')
+
+  const takeSnapshot = (): ViewSnapshot | null => {
+    const shot = viewerApi?.capture()
+    if (!shot) return null
+    return {
+      thumbnail: shot.thumbnail,
+      camera: shot.camera,
+      hiddenCategories: [...hiddenCategories],
+      selectedId,
+      isColorByStatus: colorByStatus,
+    }
+  }
+
+  const applyView = (view: TwinView) => {
+    viewerApi?.applyCamera(view.camera)
+    setHiddenCategories(new Set(view.hiddenCategories))
+    setSelectedId(view.selectedId)
+    setColorByStatus(view.isColorByStatus)
+    setActiveViewId(view.id)
+  }
+
+  const handleSaveView = () => {
+    const snapshot = takeSnapshot()
+    if (snapshot && activeViewId) updateView(activeViewId, snapshot)
+  }
+
+  const handleSaveViewAs = (name: string) => {
+    const snapshot = takeSnapshot()
+    if (!snapshot) return
+    setActiveViewId(addView(name, snapshot).id)
+  }
+
+  // A dashboard links here with `?view=<id>`: apply it once the 3D canvas and the model are ready.
+  useEffect(() => {
+    const view = viewParam ? views.find((item) => item.id === viewParam) : undefined
+    if (!view || !viewerApi || store.isRestoring) return
+    // The viewer frames the whole model when it loads; wait for that so it does not undo the view.
+    const timer = setTimeout(() => {
+      applyView(view)
+      setViewParam(null)
+    }, 700)
+    return () => clearTimeout(timer)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [viewParam, viewerApi, store.isRestoring, views.length])
+
   // Switching to simulation shows its charts; switching back returns to the inventory.
   useEffect(() => {
     setBottomTab(isSimulation ? 'simulation' : 'inventory')
@@ -261,7 +316,33 @@ export const SiteWorkspace = () => {
                   <TimelineBar timeline={timeline} />
                 )}
                 <div className="relative min-h-0 flex-1">
-                  <PanelToggles left={leftPanel} right={rightPanel} bottom={bottomPanel} />
+                  <PanelToggles
+                    left={leftPanel}
+                    right={rightPanel}
+                    bottom={bottomPanel}
+                    isViewsOpen={isViewsOpen}
+                    onToggleViews={() => setIsViewsOpen((previous) => !previous)}
+                  />
+                  {isViewsOpen && (
+                    <ViewsPanel
+                      siteRef={ref ?? ''}
+                      views={views}
+                      activeViewId={activeViewId}
+                      onSave={handleSaveView}
+                      onSaveAs={handleSaveViewAs}
+                      onApply={applyView}
+                      onUpdate={(view) => {
+                        const snapshot = takeSnapshot()
+                        if (snapshot) updateView(view.id, snapshot)
+                      }}
+                      onRename={(view, name) => renameView(view.id, name)}
+                      onDelete={(view) => {
+                        deleteView(view.id)
+                        if (view.id === activeViewId) setActiveViewId(null)
+                      }}
+                      onClose={() => setIsViewsOpen(false)}
+                    />
+                  )}
                   <VoiceAgent
                     onCommand={voice.handleCommand}
                     isAwaitingConfirmation={voice.pendingTicketTag !== null}
@@ -274,13 +355,14 @@ export const SiteWorkspace = () => {
                     colorOverrides={voice.scoreColors ?? statusColors}
                     alertIds={voice.alertIds}
                     focusRequest={voice.focusRequest}
+                    onViewerReady={setViewerApi}
                     bindings={bindings}
                     getSignals={getSignals}
                     showLabels={isDemoModel}
                     onSelect={setSelectedId}
                   />
                   {isSimulation && simulation.snapshot.alarms.length > 0 && (
-                    <div className="pointer-events-none absolute left-3 top-3 flex flex-col items-start gap-y-1.5">
+                    <div className="pointer-events-none absolute left-3 top-16 flex flex-col items-start gap-y-1.5">
                       {simulation.snapshot.alarms.map((alarm) => (
                         <div
                           key={alarm}

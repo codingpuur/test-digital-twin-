@@ -6,6 +6,7 @@ import { useState } from 'react'
 import { Button } from 'ui'
 import { EmptyStatePresentational } from 'ui-patterns/EmptyStatePresentational'
 
+import { useViews } from '../views/useViews'
 import { CreateDashboardDialog } from './CreateDashboardDialog'
 import { useDashboards } from './useDashboards'
 
@@ -14,6 +15,7 @@ export const DashboardsPanel = () => {
   const { ref } = useParams()
   const siteRef = ref ?? ''
   const { dashboards, addDashboard, deleteDashboard } = useDashboards(siteRef)
+  const { views } = useViews(siteRef)
   const [isCreating, setIsCreating] = useState(false)
 
   return (
@@ -58,6 +60,7 @@ export const DashboardsPanel = () => {
         ))}
 
       <CreateDashboardDialog
+        views={views}
         open={isCreating}
         onOpenChange={setIsCreating}
         onCreate={(values) => {

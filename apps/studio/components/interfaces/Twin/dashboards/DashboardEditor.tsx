@@ -7,6 +7,7 @@ import { toast } from 'sonner'
 import { Badge, Button, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from 'ui'
 import { EmptyStatePresentational } from 'ui-patterns/EmptyStatePresentational'
 
+import { useViews } from '../views/useViews'
 import { AddCardDialog } from './AddCardDialog'
 import { DashboardCardView } from './DashboardCardView'
 import {
@@ -41,6 +42,8 @@ export const DashboardEditor = () => {
   const now = timeline.cursor
 
   const dashboard = draft ?? saved ?? null
+  const { views } = useViews(siteRef)
+  const linkedView = views.find((view) => view.id === dashboard?.viewId)
   const siteUrl = `/project/${siteRef}?module=dashboards`
   const gridClassName = LAYOUTS.find((item) => item.value === layout)?.className ?? ''
   const hasChanges = !!draft
@@ -121,7 +124,15 @@ export const DashboardEditor = () => {
             ))}
           </SelectContent>
         </Select>
-        <Badge variant="default">All twin data</Badge>
+        {linkedView ? (
+          <Link href={`/project/${siteRef}?view=${linkedView.id}`}>
+            <Badge variant="default" title="Open this view in the 3D model">
+              View: {linkedView.name}
+            </Badge>
+          </Link>
+        ) : (
+          <Badge variant="default">All twin data</Badge>
+        )}
         <div className="flex-1" />
         <Select value={layout} onValueChange={setLayout}>
           <SelectTrigger className="w-36">

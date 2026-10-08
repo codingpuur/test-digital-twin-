@@ -1,4 +1,4 @@
-import { Maximize2, PanelBottom, PanelLeft, PanelRight } from 'lucide-react'
+import { Images, Maximize2, PanelBottom, PanelLeft, PanelRight } from 'lucide-react'
 import { cn } from 'ui'
 
 import type { CollapsiblePanel } from './useCollapsiblePanel'
@@ -8,10 +8,18 @@ type PanelTogglesProps = {
   left: CollapsiblePanel
   right: CollapsiblePanel
   bottom: CollapsiblePanel
+  isViewsOpen: boolean
+  onToggleViews: () => void
 }
 
 /** Show or hide the side panels and the bottom drawer; "Focus 3D" hides all three at once. */
-export const PanelToggles = ({ left, right, bottom }: PanelTogglesProps) => {
+export const PanelToggles = ({
+  left,
+  right,
+  bottom,
+  isViewsOpen,
+  onToggleViews,
+}: PanelTogglesProps) => {
   const panels = [left, right, bottom]
   const isFocused = panels.every((panel) => panel.isCollapsed)
 
@@ -40,6 +48,15 @@ export const PanelToggles = ({ left, right, bottom }: PanelTogglesProps) => {
           }}
         />
       ))}
+      <ButtonTooltip
+        variant="text"
+        size="tiny"
+        aria-label={isViewsOpen ? 'Hide views' : 'Show views'}
+        className={cn('px-1.5', isViewsOpen && 'text-brand')}
+        icon={<Images size={14} />}
+        onClick={onToggleViews}
+        tooltip={{ content: { side: 'top', text: 'Views' } }}
+      />
       <ButtonTooltip
         variant="text"
         size="tiny"

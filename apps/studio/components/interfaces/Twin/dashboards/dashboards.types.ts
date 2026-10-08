@@ -24,6 +24,8 @@ export type Dashboard = {
   description: string
   cards: DashboardCard[]
   createdAt: string
+  /** Saved 3D view the dashboard is about; unset means the whole twin. */
+  viewId?: string
 }
 
 export type DateRangeId = '24h' | '7d' | '30d'

@@ -45,13 +45,14 @@ export const useDashboards = (siteRef: string) => {
   ])
 
   const addDashboard = useCallback(
-    (input: Pick<Dashboard, 'name' | 'description'> & { template: string }) => {
+    (input: Pick<Dashboard, 'name' | 'description'> & { template: string; view?: string }) => {
       const dashboard: Dashboard = {
         id: createDashboardId(),
         name: input.name,
         description: input.description,
         cards: input.template === 'pumping-station' ? PUMPING_STATION_CARDS : [],
         createdAt: new Date().toISOString(),
+        viewId: input.view && input.view !== 'all' ? input.view : undefined,
       }
       setDashboards((previous) => [...previous, dashboard])
       return dashboard

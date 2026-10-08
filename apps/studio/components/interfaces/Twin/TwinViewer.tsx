@@ -9,6 +9,7 @@ import { LabelOverlay, LabelProjector, resolveLabelTargets } from './simulation/
 import type { Signals } from './simulation/signals'
 import type { TwinElement } from './twin.types'
 import { applyColorOverrides, highlightSelection } from './viewer-helpers'
+import { ViewerBridge, type ViewerApi } from './ViewerBridge'
 import { AlertBlink, CameraFocus, type FocusRequest } from './ViewerEffects'
 
 type TwinViewerProps = {
@@ -24,6 +25,8 @@ type TwinViewerProps = {
   alertIds?: string[]
   /** Asks the camera to fly to an element (or back to the whole model when `id` is null). */
   focusRequest?: FocusRequest | null
+  /** Called with a handle to capture thumbnails and move the camera (null when the canvas unmounts). */
+  onViewerReady?: (api: ViewerApi | null) => void
   onSelect: (id: string | null) => void
 }
 
@@ -36,6 +39,7 @@ export const TwinViewer = ({
   showLabels = true,
   alertIds = [],
   focusRequest = null,
+  onViewerReady,
   onSelect,
 }: TwinViewerProps) => {
   useEffect(() => {
@@ -81,6 +85,7 @@ export const TwinViewer = ({
           <primitive object={scene} onClick={handleClick} />
           <CameraFocus scene={scene} request={focusRequest} />
         </Bounds>
+        {onViewerReady && <ViewerBridge onReady={onViewerReady} />}
         <AlertBlink
           scene={scene}
           ids={alertIds}
