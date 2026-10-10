@@ -16,6 +16,11 @@ describe('resolvePumpPath', () => {
     expect(resolvePumpPath(['pumps', '3', 'telemetry', 'latest'])).toBe('pumps/3/telemetry/latest')
     expect(resolvePumpPath(['station', 'simulation', 'run'])).toBe('station/simulation/run')
     expect(resolvePumpPath(['model', 'mesh'])).toBe('model/mesh')
+    expect(resolvePumpPath(['pumps', '3', 'layers'])).toBe('pumps/3/layers')
+    expect(resolvePumpPath(['pumps', '3', 'layers', 'cavitation'])).toBe(
+      'pumps/3/layers/cavitation'
+    )
+    expect(resolvePumpPath(['pumps', '3', 'fmea'])).toBe('pumps/3/fmea')
   })
 
   it('rejects traversal, unknown paths and the push endpoint', () => {
