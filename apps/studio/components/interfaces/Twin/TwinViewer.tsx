@@ -15,6 +15,8 @@ import { AlertBlink, CameraFocus, type FocusRequest } from './ViewerEffects'
 type TwinViewerProps = {
   scene: THREE.Object3D
   selectedId: string | null
+  /** Where the camera starts; it is then moved back until the whole model fits. */
+  cameraPosition?: [number, number, number]
   /** Other parts of the selected element's equipment, glowing dimmer than the selection. */
   groupIds?: string[]
   /** Element id to colour, e.g. by status. Elements missing from the map keep their own colour. */
@@ -32,12 +34,15 @@ type TwinViewerProps = {
   onSelect: (id: string | null) => void
 }
 
+const DEFAULT_CAMERA_POSITION: [number, number, number] = [14, 10, 14]
+
 // A stable empty list, so the highlight effect does not re-run on every render.
 const NO_GROUP: string[] = []
 
 export const TwinViewer = ({
   scene,
   selectedId,
+  cameraPosition = DEFAULT_CAMERA_POSITION,
   groupIds = NO_GROUP,
   colorOverrides = null,
   bindings = [],
@@ -72,7 +77,7 @@ export const TwinViewer = ({
   return (
     <div className="relative h-full w-full">
       <Canvas
-        camera={{ position: [14, 10, 14], fov: 45 }}
+        camera={{ position: cameraPosition, fov: 45 }}
         gl={{ alpha: true, antialias: true }}
         onPointerMissed={() => onSelect(null)}
       >

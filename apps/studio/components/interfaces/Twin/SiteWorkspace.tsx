@@ -53,6 +53,8 @@ const TwinViewer = dynamic(() => import('./TwinViewer').then((mod) => mod.TwinVi
 const DEMO_MODEL_NAME = 'Demo pumping station'
 // A stable empty list, so the viewer's highlight effect does not re-run on every render.
 const NO_GROUP_IDS: string[] = []
+// The demo hall is long, so it is viewed from the front rather than from a corner.
+const DEMO_CAMERA_POSITION: [number, number, number] = [6, 12, 24]
 
 type BottomTab = 'inventory' | 'streams' | 'simulation'
 
@@ -432,6 +434,7 @@ export const SiteWorkspace = () => {
                   scene={scene}
                   selectedId={selectedId}
                   groupIds={groupIds}
+                  cameraPosition={isDemoModel ? DEMO_CAMERA_POSITION : undefined}
                   colorOverrides={voice.scoreColors ?? statusColors}
                   alertIds={voice.alertIds}
                   focusRequest={voice.focusRequest}
