@@ -105,7 +105,7 @@ export const PropertiesPanel = ({
               </button>
             )}
             <Tabs value={tab} onValueChange={setTab}>
-              <TabsList>
+              <TabsList className="gap-x-5">
                 <TabsTrigger value="properties">Properties</TabsTrigger>
                 <TabsTrigger value="insights">Insights</TabsTrigger>
               </TabsList>
