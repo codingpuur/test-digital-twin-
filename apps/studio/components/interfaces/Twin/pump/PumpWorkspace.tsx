@@ -2,7 +2,7 @@ import { useParams } from 'common'
 import { Boxes } from 'lucide-react'
 import dynamic from 'next/dynamic'
 import { useEffect, useMemo, useState } from 'react'
-import { Badge, ResizableHandle, ResizablePanel, ResizablePanelGroup } from 'ui'
+import { Badge, ResizableHandle, ResizablePanel, ResizablePanelGroup, Switch } from 'ui'
 import { EmptyStatePresentational } from 'ui-patterns/EmptyStatePresentational'
 
 import { BottomDrawer } from '../BottomDrawer'
@@ -14,23 +14,30 @@ import { WorkspaceStatusBar } from '../WorkspaceStatusBar'
 import { applyLayer, clearLayer } from './pump-layer'
 import { buildRequest, EMPTY_FORM, isChanged, type PumpFormState } from './pump-request'
 import { buildPumpScene, colorsByComponent, PUMP_STATUS_COLORS } from './pump-scene'
+import { resetRotor, rotorParts, spinRotor, spinStep } from './pump-spin'
 import { MotorCharts, PerformanceCharts, RotorCharts } from './PumpCharts'
 import { PumpFmea } from './PumpFmea'
+import { PumpHistory } from './PumpHistory'
 import { PumpLayerPicker } from './PumpLayerPicker'
+import { PumpLife } from './PumpLife'
 import { PumpPanel } from './PumpPanel'
 import { PumpProperties } from './PumpProperties'
+import { PumpReport } from './PumpReport'
 import { PumpResults } from './PumpResults'
 import { PumpTelemetry } from './PumpTelemetry'
 import {
   usePumpBaselineQuery,
   usePumpDefaultsQuery,
   usePumpFmeaQuery,
+  usePumpHistoryQuery,
   usePumpLatestQuery,
   usePumpLayerQuery,
   usePumpLayersQuery,
+  usePumpLifeQuery,
   usePumpListQuery,
   usePumpMeshQuery,
   usePumpMetaQuery,
+  usePumpReportQuery,
   usePumpWhatIfMutation,
 } from '@/data/twin/pump-queries'
 import type { PumpStatus } from '@/data/twin/pump-types'
@@ -96,6 +103,7 @@ export const PumpWorkspace = () => {
   // The backend keeps the 3D layers of each pump's last run: the scenario's once one was run.
   const which = whatIf.data ? 'scenario' : 'baseline'
   const runId = whatIf.data ? whatIf.submittedAt : baselineQuery.dataUpdatedAt
+  const [isSpinning, setIsSpinning] = useState(false)
   const [layerKey, setLayerKey] = useState<string | null>(null)
   const layersQuery = usePumpLayersQuery(ref, pump, which, Boolean(result))
   const layerQuery = usePumpLayerQuery(ref, pump, which, layerKey, runId)
@@ -117,15 +125,44 @@ export const PumpWorkspace = () => {
   }, [view, elements, layerKey])
 
   const fmeaQuery = usePumpFmeaQuery(ref, pump, tab === 'fmea')
+  const [reportPeriod, setReportPeriod] = useState<'day' | 'week' | 'month'>('week')
+  const lifeQuery = usePumpLifeQuery(ref, pump, tab === 'life')
+  const reportQuery = usePumpReportQuery(ref, pump, reportPeriod, tab === 'report')
+  const historyQuery = usePumpHistoryQuery(ref, pump, 30, tab === 'history')
   const chartTabs = result?.scenario.charts.tabs ?? []
   const drawerTabs = [
     { id: 'whatif', label: 'What-if' },
     ...chartTabs.map(([id, label]) => ({ id, label })),
     { id: 'fmea', label: 'Failure modes' },
+    { id: 'life', label: 'Degradation' },
+    { id: 'report', label: 'Report' },
+    { id: 'history', label: 'History' },
     { id: 'telemetry', label: 'Telemetry' },
   ]
   const ChartView = tab in CHART_VIEWS ? CHART_VIEWS[tab as keyof typeof CHART_VIEWS] : null
   const attention = result?.scenario.dots[tab] ?? []
+
+  // Shown spinning at the pump's speed when it runs (the twin says whether it does).
+  const motion = result?.scenario.an
+  const rpm = typeof motion?.rpm === 'number' ? motion.rpm : 0
+  const isRunning = motion?.run === true || motion?.run === 1
+
+  useEffect(() => {
+    if (!scene || !isSpinning) return
+    const parts = rotorParts(scene)
+    let frame = 0
+    let last = performance.now()
+    const tick = (now: number) => {
+      spinRotor(parts, spinStep(rpm, isRunning, (now - last) / 1000))
+      last = now
+      frame = requestAnimationFrame(tick)
+    }
+    frame = requestAnimationFrame(tick)
+    return () => {
+      cancelAnimationFrame(frame)
+      resetRotor(parts)
+    }
+  }, [scene, isSpinning, rpm, isRunning])
 
   const selectedElement = elements.find((element) => element.id === selectedId) ?? null
   const overlayBottom = isDrawerOpen ? drawerHeight + 12 : 12
@@ -217,7 +254,7 @@ export const PumpWorkspace = () => {
                   scene={scene}
                   selectedId={selectedId}
                   isHologram={viewStyle === 'hologram' && !layerKey}
-                  cameraPosition={[2.2, 1.4, 2.6]}
+                  cameraPosition={[3.4, 2.2, 4]}
                   colorOverrides={viewStyle === 'model' ? null : colorOverrides}
                   showLabels={false}
                   onSelect={(id) => {
@@ -226,17 +263,25 @@ export const PumpWorkspace = () => {
                   }}
                 />
               )}
+              {(layersQuery.data?.length ?? 0) > 0 && (
+                <div className="absolute right-3 top-28 z-10 w-64 rounded-md border bg-surface-100/90 px-3 py-2 text-xs">
+                  <PumpLayerPicker
+                    layers={layersQuery.data ?? []}
+                    activeKey={layerKey}
+                    active={layer}
+                    isLoading={layerQuery.isFetching}
+                    onChange={setLayerKey}
+                  />
+                </div>
+              )}
               <div
                 style={{ bottom: overlayBottom }}
                 className="absolute left-3 flex flex-col gap-y-2 rounded-md border bg-surface-100/90 px-3 py-2 text-xs"
               >
-                <PumpLayerPicker
-                  layers={layersQuery.data ?? []}
-                  activeKey={layerKey}
-                  active={layer}
-                  isLoading={layerQuery.isFetching}
-                  onChange={setLayerKey}
-                />
+                <label className="flex items-center justify-between gap-x-2 text-foreground-light">
+                  Spin the rotor
+                  <Switch checked={isSpinning} onCheckedChange={setIsSpinning} />
+                </label>
                 {!layerKey && <ViewStyleToggle value={viewStyle} onChange={setViewStyle} />}
                 {!layerKey && viewStyle !== 'model' && (
                   <div className="flex items-center gap-x-3 text-foreground-light">
@@ -281,6 +326,15 @@ export const PumpWorkspace = () => {
                     </div>
                   </div>
                 )}
+                {tab === 'life' && <PumpLife reply={lifeQuery.data} />}
+                {tab === 'report' && (
+                  <PumpReport
+                    reply={reportQuery.data}
+                    period={reportPeriod}
+                    onPeriodChange={setReportPeriod}
+                  />
+                )}
+                {tab === 'history' && <PumpHistory reply={historyQuery.data} />}
                 {tab === 'fmea' && <PumpFmea reply={fmeaQuery.data} />}
                 {tab === 'telemetry' && <PumpTelemetry latest={latestQuery.data} />}
               </BottomDrawer>

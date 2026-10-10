@@ -25,7 +25,7 @@ export const PumpLayerPicker = ({
   const info = layers.find((layer) => layer.key === activeKey)
 
   return (
-    <div className="flex max-w-[460px] flex-col gap-y-1.5">
+    <div className="flex flex-col gap-y-2">
       <div role="group" aria-label="3D result layer" className="flex flex-wrap gap-1">
         <Button
           size="tiny"

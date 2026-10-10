@@ -17,6 +17,7 @@ class Settings:
     fmea_ttl_s: float = 600.0
     api_key: str = ""
     cors_origins: tuple[str, ...] = ()
+    life_dir: Path = Path("data/state_life")  # the degradation record the twin keeps per pump
     db_path: str = "data/telemetry.sqlite3"  # ":memory:" for tests
     poll_interval_s: float = 30.0  # how often the live source is read into the store
     backfill_hours: float = 6.0  # history made or fetched at start-up
@@ -36,6 +37,7 @@ class Settings:
             fmea_ttl_s=float(env.get("PUMPTWIN_FMEA_TTL_S", "600")),
             api_key=env.get("PUMPTWIN_API_KEY", ""),
             cors_origins=tuple(o.strip() for o in env.get("PUMPTWIN_CORS", "").split(",") if o.strip()),
+            life_dir=Path(env.get("PUMPTWIN_LIFE_DIR", "data/state_life")),
             db_path=env.get("PUMPTWIN_DB", "data/telemetry.sqlite3"),
             poll_interval_s=float(env.get("PUMPTWIN_POLL_S", "30")),
             backfill_hours=float(env.get("PUMPTWIN_BACKFILL_H", "6")),

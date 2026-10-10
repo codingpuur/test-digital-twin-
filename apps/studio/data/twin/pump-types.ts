@@ -270,3 +270,81 @@ export type PumpFmeaReply =
   | { pump: number; state: 'unavailable'; error: string }
   | { pump: number; state: 'error'; error: string }
   | { pump: number; state: 'ready'; refreshing: boolean; timestamp: string; fm: PumpFmea }
+
+type NeedsHistory = { pump: number; state: 'unavailable'; error: string }
+type Preparing = { pump: number; state: 'preparing'; status?: string | null }
+
+export type PumpLifeComponent = {
+  component: string
+  indicator: string
+  now: number | null
+  unit: string
+  dec?: number
+  limit?: number | null
+  status?: string
+  trend?: { kind: string; text?: string; per_month?: number }
+  basis?: string
+  confidence?: string
+}
+
+export type PumpLife =
+  | NeedsHistory
+  | Preparing
+  | {
+      pump: number
+      state: 'ready'
+      as_of: string
+      data_from: string
+      running_hours: number
+      duty_pct: number
+      components: PumpLifeComponent[]
+      residuals: { name: string; state: string; offset: number; unit: string; since: string }[]
+      hypotheses: { name: string; confidence: string; evidence: string[]; action: string }[]
+      insights?: PumpFinding[]
+    }
+
+export type PumpReportWindow = {
+  start: string
+  end: string
+  running_h: number
+  availability_pct: number
+  energy_kwh: number
+  volume_ml_est: number
+  sec_kwh_per_ml: number | null
+  starts: number
+  head_m: number | null
+  flow_m3h_est: number | null
+  power_vs_kubota_pct: number | null
+  pump_vib_max: number | null
+  motor_vib_max: number | null
+  pump_brg_max_c: number | null
+  motor_brg_max_c: number | null
+  winding_max_c: number | null
+}
+
+export type PumpReport =
+  | NeedsHistory
+  | { pump: number; state: 'error'; error: string }
+  | {
+      pump: number
+      state: 'ready'
+      period: string
+      current: PumpReportWindow | null
+      previous: PumpReportWindow | null
+      note: string
+      error?: string
+    }
+
+export type PumpHistory =
+  | NeedsHistory
+  | Preparing
+  | {
+      pump: number
+      state: 'ready'
+      t: string[]
+      Q: (number | null)[]
+      H: (number | null)[]
+      vib: (number | null)[]
+      Tb: (number | null)[]
+      Tw: (number | null)[]
+    }

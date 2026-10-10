@@ -6,7 +6,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from .config import Settings
-from .routes import fmea, health, layers, meta, model, pumps, station, telemetry, whatif
+from .routes import fmea, health, layers, life, meta, model, pumps, station, telemetry, whatif
 from .runtime import Runtime
 
 
@@ -28,7 +28,7 @@ def create_app(settings: Settings | None = None, runtime: Runtime | None = None)
             CORSMiddleware, allow_origins=list(settings.cors_origins),
             allow_methods=["GET", "POST", "PUT"], allow_headers=["content-type", "x-api-key"],
         )
-    for module in (health, fmea, layers, meta, model, pumps, station, telemetry, whatif):
+    for module in (health, fmea, layers, life, meta, model, pumps, station, telemetry, whatif):
         app.include_router(module.router)
     return app
 

@@ -4,11 +4,14 @@ import { toast } from 'sonner'
 import { pumpKeys } from './pump-keys'
 import type {
   PumpFmeaReply,
+  PumpHistory,
   PumpLayer,
   PumpLayerInfo,
   PumpLayerWhich,
+  PumpLife,
   PumpMesh,
   PumpMeta,
+  PumpReport,
   PumpSummary,
   PumpTelemetryLatest,
   PumpWhatIfDefaults,
@@ -141,5 +144,51 @@ export const usePumpFmeaQuery = (
     queryFn: () => twinFetchJson<PumpFmeaReply>(pumpPath(ref!, `pumps/${pump}/fmea`)),
     enabled: Boolean(ref) && pump !== undefined && isEnabled,
     refetchInterval: (query) => (query.state.data?.state === 'computing' ? 3_000 : false),
+    staleTime: 60_000,
+  })
+
+// Degradation, the period report and the time-lapse are built from months of history, so the
+// backend only has them with an iPumpNet or CSV source (otherwise `state` is 'unavailable').
+const slowRefetch = (query: { state: { data?: { state: string } } }) =>
+  query.state.data?.state === 'preparing' ? 10_000 : false
+
+export const usePumpLifeQuery = (
+  ref: string | undefined,
+  pump: number | undefined,
+  isEnabled: boolean
+) =>
+  useQuery({
+    queryKey: pumpKeys.life(ref, pump),
+    queryFn: () => twinFetchJson<PumpLife>(pumpPath(ref!, `pumps/${pump}/life`)),
+    enabled: Boolean(ref) && pump !== undefined && isEnabled,
+    refetchInterval: slowRefetch,
+    staleTime: 60_000,
+  })
+
+export const usePumpReportQuery = (
+  ref: string | undefined,
+  pump: number | undefined,
+  period: 'day' | 'week' | 'month',
+  isEnabled: boolean
+) =>
+  useQuery({
+    queryKey: pumpKeys.report(ref, pump, period),
+    queryFn: () =>
+      twinFetchJson<PumpReport>(pumpPath(ref!, `pumps/${pump}/report?period=${period}`)),
+    enabled: Boolean(ref) && pump !== undefined && isEnabled,
+    staleTime: 60_000,
+  })
+
+export const usePumpHistoryQuery = (
+  ref: string | undefined,
+  pump: number | undefined,
+  days: number,
+  isEnabled: boolean
+) =>
+  useQuery({
+    queryKey: pumpKeys.history(ref, pump, days),
+    queryFn: () => twinFetchJson<PumpHistory>(pumpPath(ref!, `pumps/${pump}/history?days=${days}`)),
+    enabled: Boolean(ref) && pump !== undefined && isEnabled,
+    refetchInterval: slowRefetch,
     staleTime: 60_000,
   })

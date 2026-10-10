@@ -34,6 +34,8 @@ class Runtime:
         self.baseline: dict[int, tuple[int, dict]] = {}
         self.mesh_json: str | None = None
         # The last twin run of each pump, kept for its 3-D layers: (pump, "baseline" | "scenario").
+        self.life: Any = None  # the twin's LifeTracker; only with a source that has history
+        self.life_cache: dict[int, tuple[tuple, dict]] = {}
         self.fmea: dict[int, dict] = {}
         self.fmea_running: set[int] = set()
         self.runs: dict[tuple[int, str], Any] = {}
@@ -77,6 +79,9 @@ class Runtime:
             for pump in pumps:  # the first reading, and some history behind it
                 self.backfill(pump, now)
                 self.pull_live(pump)
+            from . import life as life_service  # imported here: it imports this module
+
+            life_service.start(self, pumps)
             self.built_s = round(time.time() - started, 1)
             self.state = "ready"
             threading.Thread(target=self._poll_loop, name="telemetry-poll", daemon=True).start()

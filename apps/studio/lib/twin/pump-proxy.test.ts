@@ -21,6 +21,9 @@ describe('resolvePumpPath', () => {
       'pumps/3/layers/cavitation'
     )
     expect(resolvePumpPath(['pumps', '3', 'fmea'])).toBe('pumps/3/fmea')
+    expect(resolvePumpPath(['pumps', '3', 'life'])).toBe('pumps/3/life')
+    expect(resolvePumpPath(['pumps', '3', 'report'])).toBe('pumps/3/report')
+    expect(resolvePumpPath(['pumps', '3', 'history'])).toBe('pumps/3/history')
   })
 
   it('rejects traversal, unknown paths and the push endpoint', () => {

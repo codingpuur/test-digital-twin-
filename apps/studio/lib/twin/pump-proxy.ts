@@ -5,7 +5,7 @@ const ALLOWED = [
   /^pumps\/\d+\/whatif(\/defaults|\/range)?$/,
   /^pumps\/\d+\/telemetry\/(latest|history)$/,
   /^pumps\/\d+\/layers(\/[a-z]+)?$/,
-  /^pumps\/\d+\/fmea$/,
+  /^pumps\/\d+\/(fmea|life|report|history)$/,
   /^telemetry\/channels$/,
   /^model\/(parts|mesh)$/,
   /^station\/simulation\/(meta|run)$/,
