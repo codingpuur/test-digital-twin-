@@ -64,7 +64,10 @@ export const PumpLayerPicker = ({
             <span>{formatLimit(info.hi)}</span>
             <span className="text-foreground-lighter">{info.unit}</span>
           </div>
-          <p className="text-foreground-lighter">{info.about}</p>
+          <details className="text-foreground-lighter">
+            <summary className="cursor-pointer text-foreground-light">About this layer</summary>
+            <p className="mt-1 max-h-32 overflow-y-auto">{info.about}</p>
+          </details>
           {active === null && <p className="text-foreground-lighter">Loading values…</p>}
         </div>
       )}

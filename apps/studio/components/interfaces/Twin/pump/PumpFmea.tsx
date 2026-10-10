@@ -41,7 +41,7 @@ export const PumpFmea = ({ reply }: { reply: PumpFmeaReply | undefined }) => {
   const { fm } = reply
   const attention = (fm.insights ?? []).filter((item) => item.level !== 'info')
   return (
-    <div className="flex h-full flex-col gap-y-3 overflow-y-auto p-3">
+    <div className="flex h-full flex-col gap-y-3 overflow-auto p-3">
       <p className="text-xs text-foreground-lighter">
         {fm.n} failure modes simulated on the reading of {reply.timestamp}
         {reply.refreshing ? ' · refreshing' : ''}. Amber differs from today, red differs a lot.

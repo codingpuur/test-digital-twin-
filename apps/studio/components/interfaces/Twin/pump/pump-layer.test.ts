@@ -49,10 +49,14 @@ describe('applyLayer', () => {
     expect(mesh.material.opacity).toBe(1)
   })
 
-  it('ignores values that do not match the part', () => {
+  it('shows a part without matching values as a faint ghost, and clears it again', () => {
     const { root, mesh } = makeRoot()
-    applyLayer(root, { ...layer, values: { '0': btoa('ab') } })
-    expect(mesh.geometry.getAttribute('color')).toBeUndefined()
+    applyLayer(root, { ...layer, values: { '0': btoa('ab') }, opacity: {} })
+    expect(mesh.geometry.getAttribute('color').count).toBe(3)
+    expect(mesh.material.opacity).toBeLessThan(0.5)
+    expect(mesh.material.depthWrite).toBe(false)
+    clearLayer(root)
+    expect(mesh.material.depthWrite).toBe(true)
   })
 
   it('adds streamlines and removes them on clear', () => {

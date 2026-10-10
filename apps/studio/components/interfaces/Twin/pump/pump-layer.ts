@@ -2,6 +2,8 @@ import * as THREE from 'three'
 
 import type { PumpLayer } from '@/data/twin/pump-types'
 
+const GHOST_COLOR = new THREE.Color('#6b7585')
+const GHOST_OPACITY = 0.2
 const EXTRAS_NAME = '__layer-extras'
 
 const decodeBytes = (base64: string) => Uint8Array.from(atob(base64), (char) => char.charCodeAt(0))
@@ -83,7 +85,18 @@ export const applyLayer = (root: THREE.Object3D, layer: PumpLayer) => {
     const geometry = mesh.geometry
     const count = geometry.getAttribute('position').count
     const bytes = layer.values[String(index)] ? decodeBytes(layer.values[String(index)]) : null
-    if (!bytes || bytes.length !== count) return
+    if (!bytes || bytes.length !== count) {
+      // No values for this part: show it as a faint ghost, so parts inside it stay visible.
+      const ghost = new Float32Array(count * 3)
+      for (let i = 0; i < count; i++) GHOST_COLOR.toArray(ghost, i * 3)
+      geometry.setAttribute('color', new THREE.BufferAttribute(ghost, 3))
+      mesh.material.vertexColors = true
+      mesh.material.transparent = true
+      mesh.material.opacity = GHOST_OPACITY
+      mesh.material.depthWrite = false
+      mesh.material.needsUpdate = true
+      return
+    }
     const colors = new Float32Array(count * 3)
     for (let i = 0; i < count; i++)
       sampleScale(layer.scale, bytes[i] / 254, color).toArray(colors, i * 3)
@@ -92,6 +105,7 @@ export const applyLayer = (root: THREE.Object3D, layer: PumpLayer) => {
     const opacity = layer.opacity[String(index)]
     mesh.material.transparent = opacity !== undefined
     mesh.material.opacity = opacity ?? 1
+    mesh.material.depthWrite = opacity === undefined
     mesh.material.needsUpdate = true
   })
   if (layer.extras.length > 0) root.add(buildExtras(layer))
@@ -112,6 +126,7 @@ export function clearLayer(root: THREE.Object3D) {
     mesh.material.vertexColors = false
     mesh.material.transparent = false
     mesh.material.opacity = 1
+    mesh.material.depthWrite = true
     mesh.material.needsUpdate = true
   })
 }
