@@ -15,6 +15,7 @@ import { collectElements, loadModelFile } from './model-loaders'
 import { ModulePanel } from './ModulePanel'
 import { PanelToggles } from './PanelToggles'
 import { PropertiesPanel } from './PropertiesPanel'
+import { PumpWorkspace } from './pump/PumpWorkspace'
 import type { AnimationBinding } from './simulation/animation.types'
 import { getDefaultBindings } from './simulation/default-bindings'
 import { getLiveSignals, getSimSignals, type Signals } from './simulation/signals'
@@ -66,7 +67,13 @@ const DRAWER_TABS = [
   { id: 'simulation', label: 'Simulation' },
 ]
 
+/** The Pump twin module has its own workspace (fed by the pump twin API); every other module shares this one. */
 export const SiteWorkspace = () => {
+  const [moduleId] = useQueryState('module', parseAsString.withDefault(DEFAULT_TWIN_MODULE))
+  return moduleId === 'pump' ? <PumpWorkspace /> : <ModelWorkspace />
+}
+
+const ModelWorkspace = () => {
   const { ref } = useParams()
   const [moduleId, setModuleId] = useQueryState(
     'module',

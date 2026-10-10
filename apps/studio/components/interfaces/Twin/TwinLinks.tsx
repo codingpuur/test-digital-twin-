@@ -6,6 +6,7 @@ import {
   FileText,
   Filter,
   FolderOpen,
+  Gauge,
   Network,
   PlayCircle,
   Sparkles,
@@ -36,6 +37,7 @@ const getModuleRoutes = () => {
     { key: 'users', label: 'Users', icon: <Users {...iconProps} /> },
     { key: 'streams', label: 'Streams', icon: <Waves {...iconProps} /> },
     { key: 'simulation', label: 'Simulation', icon: <PlayCircle {...iconProps} /> },
+    { key: 'pump', label: 'Pump twin', icon: <Gauge {...iconProps} /> },
   ]
 }
 

@@ -8,7 +8,9 @@ export const twinFetch = async (path: string, init: RequestInit = {}) => {
   const response = await fetchHandler(`${API_URL}/platform/twin${path}`, { ...init, headers })
   if (!response.ok) {
     const body = await response.json().catch(() => null)
-    throw new Error(body?.error?.message ?? `Request failed (${response.status})`)
+    // The mock backend replies { error: { message } }; the pump twin API replies { error: "text" }.
+    const message = typeof body?.error === 'string' ? body.error : body?.error?.message
+    throw new Error(message ?? `Request failed (${response.status})`)
   }
   return response
 }

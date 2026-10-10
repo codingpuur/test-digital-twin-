@@ -41,6 +41,7 @@ export const TWIN_MODULES: TwinModule[] = [
   { id: 'users', label: 'Users' },
   { id: 'streams', label: 'Streams' },
   { id: 'simulation', label: 'Simulation' },
+  { id: 'pump', label: 'Pump twin' },
 ]
 
 export const DEFAULT_TWIN_MODULE = 'dashboards'
