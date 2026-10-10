@@ -18,7 +18,18 @@ const HALL = 'Pump hall'
 const SUCTION = 'Raw water'
 const DISCHARGE = 'Treated water'
 
-const pumpX = [-3, 0, 3]
+// Eight pumps in a row, with room for a person to walk between the units.
+const PUMP_COUNT = 8
+const PUMP_SPACING = 3.4
+const HALL_WIDTH = 32
+const HALL_DEPTH = 10
+const pumpX = Array.from(
+  { length: PUMP_COUNT },
+  (_, i) => (i - (PUMP_COUNT - 1) / 2) * PUMP_SPACING
+)
+const HEADER_LENGTH = PUMP_SPACING * (PUMP_COUNT - 1) + 2
+// The wet well sits in the basement, just outside the west wall.
+const WELL_X = -HALL_WIDTH / 2 - 4
 
 const pumpParts = (index: number, x: number): PartSpec[] => {
   const tag = `10${index + 1}`
@@ -105,7 +116,7 @@ const PARTS: PartSpec[] = [
     system: '',
     shape: 'box',
     position: [0, -0.15, 0],
-    size: [12, 0.3, 8],
+    size: [HALL_WIDTH, 0.3, HALL_DEPTH],
     color: '#8a8f98',
   },
   {
@@ -115,8 +126,8 @@ const PARTS: PartSpec[] = [
     room: HALL,
     system: '',
     shape: 'box',
-    position: [0, 1.6, -4],
-    size: [12, 3.2, 0.25],
+    position: [0, 1.6, -HALL_DEPTH / 2],
+    size: [HALL_WIDTH, 3.2, 0.25],
     color: '#c9ccd1',
   },
   {
@@ -126,8 +137,8 @@ const PARTS: PartSpec[] = [
     room: HALL,
     system: '',
     shape: 'box',
-    position: [6, 1.6, 0],
-    size: [0.25, 3.2, 8],
+    position: [HALL_WIDTH / 2, 1.6, 0],
+    size: [0.25, 3.2, HALL_DEPTH],
     color: '#c9ccd1',
   },
   {
@@ -137,8 +148,8 @@ const PARTS: PartSpec[] = [
     room: HALL,
     system: '',
     shape: 'box',
-    position: [-6, 1.6, 0],
-    size: [0.25, 3.2, 8],
+    position: [-HALL_WIDTH / 2, 1.6, 0],
+    size: [0.25, 3.2, HALL_DEPTH],
     color: '#c9ccd1',
   },
   {
@@ -148,7 +159,7 @@ const PARTS: PartSpec[] = [
     room: 'Wet well',
     system: SUCTION,
     shape: 'cylinder',
-    position: [-9.5, 1.2, -2.2],
+    position: [WELL_X, 1.2, -2.2],
     size: [2.2, 2.4, 2.2],
     color: '#4c7ea8',
   },
@@ -159,8 +170,8 @@ const PARTS: PartSpec[] = [
     room: HALL,
     system: SUCTION,
     shape: 'box',
-    position: [-1, 0.6, -3.1],
-    size: [8.6, 0.3, 0.3],
+    position: [0, 0.6, -3.1],
+    size: [HEADER_LENGTH, 0.3, 0.3],
     color: '#7f8c99',
   },
   {
@@ -171,7 +182,7 @@ const PARTS: PartSpec[] = [
     system: DISCHARGE,
     shape: 'box',
     position: [0, 1.1, 3.1],
-    size: [8.6, 0.3, 0.3],
+    size: [HEADER_LENGTH, 0.3, 0.3],
     color: '#5aa6d6',
   },
   {
@@ -181,7 +192,7 @@ const PARTS: PartSpec[] = [
     room: 'Electrical room',
     system: 'Power',
     shape: 'box',
-    position: [5, 1.1, -3.2],
+    position: [HALL_WIDTH / 2 - 2.5, 1.1, -HALL_DEPTH / 2 + 0.8],
     size: [1.4, 2.2, 0.6],
     color: '#b6453f',
   },
@@ -192,7 +203,7 @@ const PARTS: PartSpec[] = [
     room: 'Wet well',
     system: SUCTION,
     shape: 'cylinder',
-    position: [-9.5, 2.6, -2.2],
+    position: [WELL_X, 2.6, -2.2],
     size: [0.12, 0.5, 0.12],
     color: '#e5c04a',
   },

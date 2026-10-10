@@ -1,6 +1,7 @@
 // Pure model of the pumping station used by the Simulation mode. No React, no three.js.
 
-export type PumpTuple<T> = [T, T, T]
+/** One entry per pump, in `PUMP_NAMES` order. */
+export type PumpTuple<T> = T[]
 
 export type SimControls = {
   inflow: number // m³/h
@@ -32,7 +33,20 @@ export type Scenario = {
   controls: Partial<SimControls>
 }
 
-export const PUMP_NAMES = ['P-101', 'P-102', 'P-103'] as const
+export const PUMP_NAMES = [
+  'P-101',
+  'P-102',
+  'P-103',
+  'P-104',
+  'P-105',
+  'P-106',
+  'P-107',
+  'P-108',
+] as const
+
+/** A flag per pump: true for the listed pump indexes, false for the rest. */
+const flags = (...onIndexes: number[]): boolean[] =>
+  PUMP_NAMES.map((_, index) => onIndexes.includes(index))
 
 export const VIBRATION_WARNING = 7
 export const PRESSURE_WARNING = 8
@@ -43,7 +57,7 @@ const WELL_CAPACITY = 4200
 const MAX_PUMP_FLOW = 520
 const MAX_PUMP_POWER = 95
 
-const NO_TRIP: PumpTuple<boolean> = [false, false, false]
+const NO_TRIP: PumpTuple<boolean> = flags()
 
 export const SCENARIOS: Scenario[] = [
   {
@@ -55,7 +69,7 @@ export const SCENARIOS: Scenario[] = [
       inflow: 800,
       valve: 100,
       auto: true,
-      on: [true, false, false],
+      on: flags(0),
       trip: NO_TRIP,
       vibrationFault: NO_TRIP,
     },
@@ -69,7 +83,7 @@ export const SCENARIOS: Scenario[] = [
       inflow: 1800,
       valve: 100,
       auto: true,
-      on: [true, false, false],
+      on: flags(0),
       trip: NO_TRIP,
       vibrationFault: NO_TRIP,
     },
@@ -83,9 +97,9 @@ export const SCENARIOS: Scenario[] = [
       inflow: 900,
       valve: 100,
       auto: true,
-      on: [false, true, false],
-      trip: [true, false, false],
-      vibrationFault: [true, false, false],
+      on: flags(1),
+      trip: flags(0),
+      vibrationFault: flags(0),
     },
   },
   {
@@ -97,7 +111,7 @@ export const SCENARIOS: Scenario[] = [
       inflow: 900,
       valve: 15,
       auto: false,
-      on: [true, true, false],
+      on: flags(0, 1),
       trip: NO_TRIP,
       vibrationFault: NO_TRIP,
     },
@@ -111,8 +125,8 @@ export const SCENARIOS: Scenario[] = [
       inflow: 900,
       valve: 100,
       auto: false,
-      on: [false, false, false],
-      trip: [true, true, true],
+      on: flags(),
+      trip: PUMP_NAMES.map(() => true),
       vibrationFault: NO_TRIP,
     },
   },
@@ -122,8 +136,8 @@ export const createControls = (): SimControls => ({
   inflow: 800,
   valve: 100,
   auto: true,
-  on: [true, false, false],
-  speed: [80, 80, 80],
+  on: flags(0),
+  speed: PUMP_NAMES.map(() => 80),
   trip: [...NO_TRIP],
   vibrationFault: [...NO_TRIP],
 })
@@ -133,26 +147,29 @@ export const createState = (): SimState => ({
   level: 55,
   flow: 0,
   pressure: 0.3,
-  power: [0, 0, 0],
-  vibration: [0.4, 0.4, 0.4],
-  running: [false, false, false],
+  power: PUMP_NAMES.map(() => 0),
+  vibration: PUMP_NAMES.map(() => 0.4),
+  running: flags(),
 })
 
 export const applyScenario = (controls: SimControls, scenario: Scenario): SimControls => ({
   ...controls,
   ...scenario.controls,
-  on: [...(scenario.controls.on ?? controls.on)] as PumpTuple<boolean>,
-  trip: [...(scenario.controls.trip ?? controls.trip)] as PumpTuple<boolean>,
-  vibrationFault: [
-    ...(scenario.controls.vibrationFault ?? controls.vibrationFault),
-  ] as PumpTuple<boolean>,
+  on: [...(scenario.controls.on ?? controls.on)],
+  trip: [...(scenario.controls.trip ?? controls.trip)],
+  vibrationFault: [...(scenario.controls.vibrationFault ?? controls.vibrationFault)],
 })
 
-// Start/stop levels for pumps 1-3 under lead/lag control.
+// Start/stop levels of each pump under lead/lag control. Pumps 4-8 only join in an extreme storm.
 const LEAD_LAG: [start: number, stop: number][] = [
   [35, 20],
   [70, 55],
   [85, 68],
+  [90, 76],
+  [93, 80],
+  [95, 84],
+  [97, 88],
+  [99, 90],
 ]
 
 export type StepResult = { state: SimState; controls: SimControls; events: string[] }
@@ -160,7 +177,7 @@ export type StepResult = { state: SimState; controls: SimControls; events: strin
 /** Advances the station by `dt` simulated seconds. Never mutates its inputs. */
 export const stepSimulation = (state: SimState, controls: SimControls, dt: number): StepResult => {
   const events: string[] = []
-  const on = [...controls.on] as PumpTuple<boolean>
+  const on = [...controls.on]
 
   if (controls.auto) {
     LEAD_LAG.forEach(([start, stop], i) => {
@@ -176,7 +193,7 @@ export const stepSimulation = (state: SimState, controls: SimControls, dt: numbe
   }
 
   const valveCapacity = Math.min(1, 0.25 + controls.valve / 130)
-  const running = on.map((isOn, i) => isOn && !controls.trip[i]) as PumpTuple<boolean>
+  const running = on.map((isOn, i) => isOn && !controls.trip[i])
   const pumpFlow = running.map((isRunning, i) =>
     isRunning ? MAX_PUMP_FLOW * (controls.speed[i] / 100) * valveCapacity : 0
   )
@@ -184,13 +201,13 @@ export const stepSimulation = (state: SimState, controls: SimControls, dt: numbe
 
   const power = running.map((isRunning, i) =>
     isRunning ? MAX_PUMP_POWER * Math.pow(controls.speed[i] / 100, 3) : 0
-  ) as PumpTuple<number>
+  )
 
   const vibration = running.map((isRunning, i) => {
     if (controls.vibrationFault[i]) return 9.4
     if (!isRunning) return 0.4
     return 2.6 + controls.speed[i] / 60 + (controls.valve < 30 ? 3.2 : 0)
-  }) as PumpTuple<number>
+  })
 
   const pressure = flow > 0 ? 2.2 + flow / 380 + ((100 - controls.valve) / 100) * 6.5 : 0.3
   const level = Math.max(

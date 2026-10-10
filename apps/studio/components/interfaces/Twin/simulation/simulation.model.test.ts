@@ -5,6 +5,7 @@ import {
   createControls,
   createState,
   getAlarms,
+  PUMP_NAMES,
   SCENARIOS,
   stepSimulation,
 } from './simulation.model'
@@ -15,6 +16,7 @@ const run = (seconds: number, controls = createControls(), state = createState()
   return current
 }
 
+const noPumps = () => PUMP_NAMES.map(() => false)
 const scenario = (id: string) => SCENARIOS.find((item) => item.id === id)!
 
 describe('stepSimulation', () => {
@@ -27,11 +29,7 @@ describe('stepSimulation', () => {
   })
 
   it('raises the level when inflow exceeds pump flow', () => {
-    const controls = {
-      ...createControls(),
-      auto: false,
-      on: [false, false, false] as [boolean, boolean, boolean],
-    }
+    const controls = { ...createControls(), auto: false, on: noPumps() }
     expect(run(60, controls).state.level).toBeGreaterThan(55)
   })
 
@@ -45,7 +43,7 @@ describe('stepSimulation', () => {
     const controls = applyScenario(createControls(), scenario('power'))
     const { state } = run(5, controls)
     expect(state.flow).toBe(0)
-    expect(state.running).toEqual([false, false, false])
+    expect(state.running).toEqual(noPumps())
   })
 
   it('reports a vibration alarm and trip for the P-101 trip scenario', () => {
@@ -57,8 +55,8 @@ describe('stepSimulation', () => {
   })
 
   it('raises pressure when the discharge valve closes', () => {
-    const open = run(5, { ...createControls(), auto: false, on: [true, true, false] }).state
-      .pressure
+    const open = run(5, { ...createControls(), auto: false, on: noPumps().map((_, i) => i < 2) })
+      .state.pressure
     const closed = run(5, applyScenario(createControls(), scenario('valve'))).state.pressure
     expect(closed).toBeGreaterThan(open)
   })
@@ -68,7 +66,7 @@ describe('stepSimulation', () => {
       ...createControls(),
       inflow: 2000,
       auto: false,
-      on: [false, false, false],
+      on: noPumps(),
     })
     expect(high.state.level).toBeLessThanOrEqual(100)
     const low = run(5000, { ...createControls(), inflow: 0 })

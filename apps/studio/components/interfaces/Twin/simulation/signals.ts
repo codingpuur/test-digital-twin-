@@ -31,7 +31,17 @@ const read = (streamId: string, time: number) => {
   return stream ? readStream(stream, time) : 0
 }
 
-/** Signals derived from the mock streams at a point in time. P-102 and P-103 are standby (stopped). */
+/** Pumps 2 and up are standby (stopped) in the live data. */
+const standbySignals: Signals = Object.fromEntries(
+  PUMP_NAMES.slice(1).flatMap((_, i) => [
+    [`p${i + 2}.speed`, 0],
+    [`p${i + 2}.power`, 0],
+    [`p${i + 2}.vib`, 0.4],
+    [`p${i + 2}.state`, 0],
+  ])
+)
+
+/** Signals derived from the mock streams at a point in time. */
 export const getLiveSignals = (time: number): Signals => {
   const power = read('power', time)
   const vibration = read('vibration', time)
@@ -45,14 +55,7 @@ export const getLiveSignals = (time: number): Signals => {
     'p1.power': power,
     'p1.vib': vibration,
     'p1.state': isRunning ? 1 : 0,
-    'p2.speed': 0,
-    'p2.power': 0,
-    'p2.vib': 0.4,
-    'p2.state': 0,
-    'p3.speed': 0,
-    'p3.power': 0,
-    'p3.vib': 0.4,
-    'p3.state': 0,
+    ...standbySignals,
   }
 }
 
@@ -126,19 +129,22 @@ const PRESSURE_READING: ReadingSpec = {
 
 /** Which signals describe which demo element. Elements missing here have no live data. */
 export const READINGS_BY_ELEMENT: Record<string, ReadingSpec[]> = {
-  'P-101 Pump': pumpReadings(1),
-  'P-102 Pump': pumpReadings(2),
-  'P-103 Pump': pumpReadings(3),
-  'M-101 Motor': motorReadings(1),
-  'M-102 Motor': motorReadings(2),
-  'M-103 Motor': motorReadings(3),
+  ...Object.fromEntries(
+    PUMP_NAMES.flatMap((_, i) => [
+      [`P-10${i + 1} Pump`, pumpReadings(i + 1)],
+      [`M-10${i + 1} Motor`, motorReadings(i + 1)],
+    ])
+  ),
   'Wet well': [LEVEL_READING],
   'LT-001 Level sensor': [LEVEL_READING],
   'Suction header': [FLOW_READING],
   'Discharge header': [FLOW_READING, PRESSURE_READING],
-  'DV-101 Discharge valve': [{ label: 'Position', signal: 'valve.pos', unit: '%', decimals: 0 }],
-  'DV-102 Discharge valve': [{ label: 'Position', signal: 'valve.pos', unit: '%', decimals: 0 }],
-  'DV-103 Discharge valve': [{ label: 'Position', signal: 'valve.pos', unit: '%', decimals: 0 }],
+  ...Object.fromEntries(
+    PUMP_NAMES.map((_, i) => [
+      `DV-10${i + 1} Discharge valve`,
+      [{ label: 'Position', signal: 'valve.pos', unit: '%', decimals: 0 }],
+    ])
+  ),
 }
 
 export type ElementReading = {

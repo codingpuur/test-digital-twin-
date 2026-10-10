@@ -1,5 +1,5 @@
 import type { AnimationBinding } from './animation.types'
-import { HIGH_LEVEL_WARNING, VIBRATION_WARNING } from './simulation.model'
+import { HIGH_LEVEL_WARNING, PUMP_NAMES, VIBRATION_WARNING } from './simulation.model'
 
 let counter = 0
 const binding = (input: Omit<AnimationBinding, 'id' | 'enabled'>): AnimationBinding => {
@@ -11,7 +11,7 @@ const binding = (input: Omit<AnimationBinding, 'id' | 'enabled'>): AnimationBind
 export const getDefaultBindings = (): AnimationBinding[] => {
   counter = 0
   return [
-    ...[1, 2, 3].flatMap((n) => [
+    ...PUMP_NAMES.map((_, i) => i + 1).flatMap((n) => [
       binding({ elementName: `P-10${n} Pump`, effect: 'rotate', signal: `p${n}.speed`, max: 100 }),
       binding({
         elementName: `P-10${n} Pump`,
