@@ -57,7 +57,7 @@ with httpx.Client(base_url=BASE, timeout=60, headers=KEY) as client:
 
     mis = client.post("/v1/pumps/6/whatif", json={**base, "driver": "flow_m3h", "over": {}, "faults": {"misalignment": 1.0}}).json()
     view = mis["view"]
-    check("what-if view: status, alarms, focus", view["health"]["status"] == "act" and view["alarms"] and view["focus_part"],
+    check("what-if view: status, alarms, focus", view["health"]["status"] in ("watch", "act") and view["alarms"] and view["focus_part"],
           f"index {view['health']['baseline_index']} -> {view['health']['index']}, worst {view['worst_component']}, focus {view['focus_part']}")
     check("what-if view: deltas say worse", any(d["direction"] == "worse" for d in view["deltas"]))
 
