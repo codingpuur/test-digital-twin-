@@ -5,6 +5,7 @@ from __future__ import annotations
 import time
 from typing import Any
 
+from . import enrich
 from .runtime import Runtime
 from .schemas import WhatIfRequest
 
@@ -50,7 +51,6 @@ def pump_summaries(rt: Runtime) -> list[dict]:
             if cached and time.time() - cached[0] < rt.settings.summary_ttl_s:
                 out.append(cached[1])
                 continue
-            rt.refresh(pump)
             run = rt.twins[pump].process(rt.raw[pump], {})
             item = {
                 "pump": pump, "timestamp": run.kpi.get("timestamp"), "usable": run.kpi.get("usable"),
@@ -65,7 +65,6 @@ def pump_summaries(rt: Runtime) -> list[dict]:
 def defaults(rt: Runtime, pump: int) -> dict:
     p3 = rt.p3
     with rt.lock:
-        rt.refresh(pump)
         raw, twin = rt.raw[pump], rt.twins[pump]
         return {
             "pump": pump, "defaults": p3.whatif_defaults(twin, raw), "ranges": p3.whatif_ranges(twin, raw),
@@ -87,7 +86,6 @@ def run_whatif(rt: Runtime, pump: int, body: WhatIfRequest) -> dict:
     twin = rt.twins[pump]
     started = time.time()
     with rt.lock:
-        rt.refresh(pump)
         raw = rt.raw[pump]
         try:
             raw2, notes, solved = p3.whatif_row(twin, raw, over, body.mode, body.driver, vfd=body.vfd)
@@ -113,5 +111,6 @@ def run_whatif(rt: Runtime, pump: int, body: WhatIfRequest) -> dict:
     return {
         "pump": pump, "ms": round((time.time() - started) * 1000, 1), "notes": notes, "solved": solved,
         "scenario": scenario, "baseline": {k: baseline[k] for k in BASELINE_KEYS if k in baseline},
+        "view": enrich.scenario_view(p3, baseline, scenario),
         "reading_timestamp": raw.get("timestamp"),
     }

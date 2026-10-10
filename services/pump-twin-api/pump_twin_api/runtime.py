@@ -8,32 +8,44 @@ from typing import Any
 
 from .config import Settings
 from .demo_feed import demo_rows
+from .telemetry.demo import DemoSource
+from .telemetry.rows import parse_ts, row_values, to_row
+from .telemetry.store import TelemetryStore
 
 
 class Runtime:
-    """The twin and the readings it works on. Built by a background thread so the API can answer
-    /health while the (slow) 3-D model is prepared."""
+    """The twin, its live readings and the telemetry store. The twin is built by a background thread
+    so the API can answer /health while the (slow) 3-D model is prepared."""
 
-    def __init__(self, settings: Settings) -> None:
+    def __init__(self, settings: Settings, store: TelemetryStore | None = None) -> None:
         self.settings = settings
         self.state = "starting"  # starting | building | ready | error
         self.error: str | None = None
         self.p3: Any = None  # pump_3d_twin
         self.ptb: Any = None  # pump_twin_bwssb
         self.feed: Any = None
+        self.demo: DemoSource | None = None
+        self.store = store or TelemetryStore(settings.db_path)
         self.twins: dict[int, Any] = {}
-        self.raw: dict[int, dict] = {}
+        self.raw: dict[int, dict] = {}  # the reading each pump's what-if starts from
         self.raw_at: dict[int, float] = {}
-        self.pinned: set[int] = set()
+        self.poll: dict[int, dict] = {}  # last poll per pump: {"ts": ..., "error": ...}
         self.summary: dict[int, tuple[float, dict]] = {}
         self.baseline: dict[int, tuple[int, dict]] = {}
+        self.mesh_json: str | None = None
         self.built_s = 0.0
         # The twin mutates shared state while processing (e.g. ambient temperature), as its own
         # server does under a lock, so one scenario runs at a time.
         self.lock = threading.RLock()
+        self._stop = threading.Event()
+
+    # --- start-up ---------------------------------------------------------------------------------
 
     def start(self) -> None:
         threading.Thread(target=self._build, name="twin-build", daemon=True).start()
+
+    def stop(self) -> None:
+        self._stop.set()
 
     def _build(self) -> None:
         cfg = self.settings
@@ -56,32 +68,69 @@ class Runtime:
             self.twins = {p: base if p == base.pump else p3.twin_for_pump(base, p) for p in pumps}
 
             if cfg.source == "demo":
-                self.raw = demo_rows(p3, ptb, base, cfg.station, pumps)
-            else:
-                for pump in pumps:
-                    self.raw[pump] = self.feed.latest_row(pump)
-            self.raw_at = {p: time.time() for p in self.raw}
+                self.demo = DemoSource(demo_rows(p3, ptb, base, cfg.station, pumps))
+            now = time.time()
+            for pump in pumps:  # the first reading, and some history behind it
+                self.backfill(pump, now)
+                self.pull_live(pump)
             self.built_s = round(time.time() - started, 1)
             self.state = "ready"
+            threading.Thread(target=self._poll_loop, name="telemetry-poll", daemon=True).start()
         except Exception as exc:  # reported by /health instead of crashing the process
             self.state = "error"
             self.error = f"{type(exc).__name__}: {exc}"
 
-    def refresh(self, pump: int, force: bool = False) -> None:
-        """Re-reads the live row from the source (never for a demo or a pinned reading)."""
-        if self.settings.source == "demo" or pump in self.pinned or self.feed is None:
-            return
-        if force or time.time() - self.raw_at.get(pump, 0) > self.settings.summary_ttl_s:
-            if getattr(self.feed, "kind", "") == "api":
+    # --- telemetry --------------------------------------------------------------------------------
+
+    def apply_reading(self, pump: int, row: dict, ts: float | None = None) -> float:
+        """Stores a reading and makes it what the pump's what-if starts from."""
+        ts = parse_ts(row.get("timestamp")) if ts is None else ts
+        values = row_values(row)
+        self.store.append(pump, ts, values)
+        with self.lock:
+            self.raw[pump], self.raw_at[pump] = to_row(ts, values), ts
+            self.summary.pop(pump, None)
+        return ts
+
+    def pull_live(self, pump: int) -> None:
+        """Reads the pump's current values from the source (demo, iPumpNet or CSV) into the store."""
+        try:
+            if self.demo is not None:
+                now = time.time()
+                row = to_row(now, self.demo.values_at(pump, now))
+            elif getattr(self.feed, "kind", "") == "api":
                 row = self.feed.latest_row(pump, force=True)
             else:
                 row = self.feed.latest_row(pump, "last")
-            self.raw[pump], self.raw_at[pump] = row, time.time()
+            ts = self.apply_reading(pump, row)
+            self.poll[pump] = {"ts": ts, "error": None}
+        except Exception as exc:  # a broken source must not stop the service
+            self.poll[pump] = {"ts": self.poll.get(pump, {}).get("ts"), "error": f"{type(exc).__name__}: {exc}"}
 
-    def pin(self, pump: int, row: dict) -> None:
-        """Uses `row` (iPumpNet field names) as the pump's current state until the service restarts."""
-        with self.lock:
-            self.raw[pump], self.raw_at[pump] = row, time.time()
-            self.pinned.add(pump)
-            self.summary.pop(pump, None)
-            self.baseline.pop(pump, None)
+    def backfill(self, pump: int, now: float) -> None:
+        hours = self.settings.backfill_hours
+        if hours <= 0:
+            return
+        try:
+            if self.demo is not None:
+                rows = list(self.demo.history(pump, now - hours * 3600, now, 60.0))
+            else:
+                rows = self._history_rows(pump, now - hours * 3600)
+            self.store.append_many(pump, rows)
+        except Exception as exc:
+            self.poll[pump] = {"ts": None, "error": f"history: {type(exc).__name__}: {exc}"}
+
+    def _history_rows(self, pump: int, since: float) -> list[tuple[float, dict[str, float]]]:
+        """History from iPumpNet or the CSV export (not exercised without a login or a CSV)."""
+        frame = self.p3.history_frame(self.feed, self.settings.station, pump, days=max(1, int(self.settings.backfill_hours // 24) + 1))
+        rows = []
+        for record in frame.to_dict("records"):
+            ts = parse_ts(record.get("timestamp"))
+            if ts >= since:
+                rows.append((ts, row_values(record)))
+        return rows
+
+    def _poll_loop(self) -> None:
+        while not self._stop.wait(self.settings.poll_interval_s):
+            for pump in list(self.twins):
+                self.pull_live(pump)

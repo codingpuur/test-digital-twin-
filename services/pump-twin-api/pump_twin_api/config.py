@@ -16,6 +16,9 @@ class Settings:
     summary_ttl_s: float = 30.0
     api_key: str = ""
     cors_origins: tuple[str, ...] = ()
+    db_path: str = "data/telemetry.sqlite3"  # ":memory:" for tests
+    poll_interval_s: float = 30.0  # how often the live source is read into the store
+    backfill_hours: float = 6.0  # history made or fetched at start-up
 
     @classmethod
     def from_env(cls, env: Mapping[str, str] | None = None) -> Settings:
@@ -31,4 +34,7 @@ class Settings:
             summary_ttl_s=float(env.get("PUMPTWIN_SUMMARY_TTL_S", "30")),
             api_key=env.get("PUMPTWIN_API_KEY", ""),
             cors_origins=tuple(o.strip() for o in env.get("PUMPTWIN_CORS", "").split(",") if o.strip()),
+            db_path=env.get("PUMPTWIN_DB", "data/telemetry.sqlite3"),
+            poll_interval_s=float(env.get("PUMPTWIN_POLL_S", "30")),
+            backfill_hours=float(env.get("PUMPTWIN_BACKFILL_H", "6")),
         )
