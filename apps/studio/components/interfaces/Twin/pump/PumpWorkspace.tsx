@@ -156,13 +156,7 @@ export const PumpWorkspace = () => {
           <ResizableHandle withHandle />
           <ResizablePanel id="pump-main">
             <div className="relative h-full w-full bg-surface-100">
-              <PanelToggles
-                left={leftPanel}
-                bottom={drawer}
-                bottomOffset={overlayBottom}
-                isViewsOpen={false}
-                onToggleViews={() => {}}
-              />
+              <PanelToggles left={leftPanel} bottom={drawer} bottomOffset={overlayBottom} />
               <div className="absolute left-3 top-3 z-10 flex max-w-[calc(100%-24px)] flex-col items-start gap-y-1.5">
                 {view?.alarms.map((alarm) => (
                   <div

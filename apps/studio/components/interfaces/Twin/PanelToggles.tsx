@@ -16,8 +16,9 @@ type PanelTogglesProps = {
   bottom: Toggleable
   /** Distance from the bottom of the view, so the toolbar sits above an open drawer. */
   bottomOffset: number
-  isViewsOpen: boolean
-  onToggleViews: () => void
+  /** Without these the Views button is left out (a workspace with no saved views). */
+  isViewsOpen?: boolean
+  onToggleViews?: () => void
 }
 
 /** Show or hide the side panels and the bottom drawer; "Focus 3D" hides all three at once. */
@@ -25,7 +26,7 @@ export const PanelToggles = ({
   left,
   bottom,
   bottomOffset,
-  isViewsOpen,
+  isViewsOpen = false,
   onToggleViews,
 }: PanelTogglesProps) => {
   const panels = [left, bottom]
@@ -58,15 +59,17 @@ export const PanelToggles = ({
           }}
         />
       ))}
-      <ButtonTooltip
-        variant="text"
-        size="tiny"
-        aria-label={isViewsOpen ? 'Hide views' : 'Show views'}
-        className={cn('px-1.5', isViewsOpen && 'text-brand')}
-        icon={<Images size={14} />}
-        onClick={onToggleViews}
-        tooltip={{ content: { side: 'top', text: 'Views' } }}
-      />
+      {onToggleViews && (
+        <ButtonTooltip
+          variant="text"
+          size="tiny"
+          aria-label={isViewsOpen ? 'Hide views' : 'Show views'}
+          className={cn('px-1.5', isViewsOpen && 'text-brand')}
+          icon={<Images size={14} />}
+          onClick={onToggleViews}
+          tooltip={{ content: { side: 'top', text: 'Views' } }}
+        />
+      )}
       <ButtonTooltip
         variant="text"
         size="tiny"

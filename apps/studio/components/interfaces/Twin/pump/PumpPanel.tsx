@@ -17,6 +17,8 @@ type PumpPanelProps = {
   onReset: () => void
 }
 
+const round = (value: number) => Number(value.toPrecision(6))
+
 const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
   <section className="flex flex-col gap-y-2 border-b px-4 py-3">
     <h3 className="text-xs uppercase tracking-wide text-foreground-light">{title}</h3>
@@ -81,7 +83,7 @@ export const PumpPanel = ({
               <span className="flex justify-between text-foreground-light">
                 {field.label}
                 <span className="text-xs text-foreground-lighter">
-                  {limits ? `${limits[0]}–${limits[1]} ` : ''}
+                  {limits ? `${round(limits[0])}–${round(limits[1])} ` : ''}
                   {field.unit}
                 </span>
               </span>
