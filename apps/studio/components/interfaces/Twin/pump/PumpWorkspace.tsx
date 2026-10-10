@@ -15,6 +15,7 @@ import { applyLayer, clearLayer } from './pump-layer'
 import { buildRequest, EMPTY_FORM, isChanged, type PumpFormState } from './pump-request'
 import { buildPumpScene, colorsByComponent, PUMP_STATUS_COLORS } from './pump-scene'
 import { MotorCharts, PerformanceCharts, RotorCharts } from './PumpCharts'
+import { PumpFmea } from './PumpFmea'
 import { PumpLayerPicker } from './PumpLayerPicker'
 import { PumpPanel } from './PumpPanel'
 import { PumpProperties } from './PumpProperties'
@@ -23,6 +24,7 @@ import { PumpTelemetry } from './PumpTelemetry'
 import {
   usePumpBaselineQuery,
   usePumpDefaultsQuery,
+  usePumpFmeaQuery,
   usePumpLatestQuery,
   usePumpLayerQuery,
   usePumpLayersQuery,
@@ -114,10 +116,12 @@ export const PumpWorkspace = () => {
     return colorsByComponent(elements, statusOf)
   }, [view, elements, layerKey])
 
+  const fmeaQuery = usePumpFmeaQuery(ref, pump, tab === 'fmea')
   const chartTabs = result?.scenario.charts.tabs ?? []
   const drawerTabs = [
     { id: 'whatif', label: 'What-if' },
     ...chartTabs.map(([id, label]) => ({ id, label })),
+    { id: 'fmea', label: 'Failure modes' },
     { id: 'telemetry', label: 'Telemetry' },
   ]
   const ChartView = tab in CHART_VIEWS ? CHART_VIEWS[tab as keyof typeof CHART_VIEWS] : null
@@ -277,6 +281,7 @@ export const PumpWorkspace = () => {
                     </div>
                   </div>
                 )}
+                {tab === 'fmea' && <PumpFmea reply={fmeaQuery.data} />}
                 {tab === 'telemetry' && <PumpTelemetry latest={latestQuery.data} />}
               </BottomDrawer>
             </div>

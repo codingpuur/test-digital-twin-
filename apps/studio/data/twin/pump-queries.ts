@@ -3,6 +3,7 @@ import { toast } from 'sonner'
 
 import { pumpKeys } from './pump-keys'
 import type {
+  PumpFmeaReply,
   PumpLayer,
   PumpLayerInfo,
   PumpLayerWhich,
@@ -127,4 +128,18 @@ export const usePumpLayerQuery = (
       twinFetchJson<PumpLayer>(pumpPath(ref!, `pumps/${pump}/layers/${key}?which=${which}`)),
     enabled: Boolean(ref) && pump !== undefined && key !== null,
     staleTime: Infinity,
+  })
+
+/** Failure modes on today's reading. The backend computes them in the background, so ask again until ready. */
+export const usePumpFmeaQuery = (
+  ref: string | undefined,
+  pump: number | undefined,
+  isEnabled: boolean
+) =>
+  useQuery({
+    queryKey: pumpKeys.fmea(ref, pump),
+    queryFn: () => twinFetchJson<PumpFmeaReply>(pumpPath(ref!, `pumps/${pump}/fmea`)),
+    enabled: Boolean(ref) && pump !== undefined && isEnabled,
+    refetchInterval: (query) => (query.state.data?.state === 'computing' ? 3_000 : false),
+    staleTime: 60_000,
   })

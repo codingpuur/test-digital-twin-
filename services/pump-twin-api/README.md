@@ -40,6 +40,7 @@ The twin takes about 100 s to build at start. `GET /health` shows `building`, th
 | `PUMPTWIN_DB`          | `data/telemetry.sqlite3`   | Telemetry store (SQLite). Use `:memory:` for tests                        |
 | `PUMPTWIN_POLL_S`      | `30`                       | How often the source is read into the store                              |
 | `PUMPTWIN_BACKFILL_H`  | `6`                        | Hours of history made (demo) or fetched (api, csv) at start-up           |
+| `PUMPTWIN_FMEA_TTL_S`  | `600`                      | How long a failure-mode result is reused before it is recomputed         |
 | `PUMPTWIN_API_KEY`     | empty                      | When set, every `/v1` call needs the header `x-api-key`                   |
 | `PUMPTWIN_CORS`        | empty                      | Comma-separated origins that may call the API from a browser             |
 | `IPUMPNET_EMAIL` etc.  |                            | iPumpNet login for `api`, see the twin's `INTEGRATION.md`. Never commit  |
@@ -64,6 +65,8 @@ All under `/v1` except `/health`. Errors that the user can fix answer `422 {"err
 | `GET /v1/pumps/{n}/telemetry/latest` | The newest reading, each channel with its `status` and `limit` |
 | `GET /v1/pumps/{n}/telemetry/history?channel=&from=&to=&step_s=` | Series per channel (never more than 2000 points) |
 | `POST /v1/pumps/{n}/telemetry` | Push a reading `{ts, values}`; it also becomes the what-if start |
+| `GET /v1/pumps/{n}/layers` and `/layers/{key}?which=baseline\|scenario` | 3-D result layers of the last run (cavitation, stress, thermal …), one at a time |
+| `GET /v1/pumps/{n}/fmea` | Failure modes on today's reading; `state` is computing, ready, unavailable or error |
 | `GET /v1/model/parts` and `/v1/model/mesh` | Parts with their component; geometry (cached by ETag) |
 | `GET /v1/station/simulation/meta` | Scenarios, limits, lead/lag levels |
 | `POST /v1/station/simulation/run` | A scenario run as a time series with events and alarms |

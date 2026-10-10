@@ -7,6 +7,7 @@ until it is ready. The twin is held for the duration, so a what-if waits meanwhi
 from __future__ import annotations
 
 import threading
+import time
 from typing import Any
 
 from .runtime import Runtime
@@ -15,7 +16,7 @@ WORKBOOK = "Failure_Modes_1.xlsx"
 
 
 def _compute(rt: Runtime, pump: int, stamp: str) -> None:
-    entry: dict[str, Any] = {"stamp": stamp}
+    entry: dict[str, Any] = {"at": time.time(), "timestamp": stamp}
     try:
         p3 = rt.p3
         with rt.lock:
@@ -29,14 +30,14 @@ def _compute(rt: Runtime, pump: int, stamp: str) -> None:
 
 
 def get(rt: Runtime, pump: int) -> dict:
+    """The newest result. An older one is served while a fresh one is computed (`refreshing`)."""
     if not (rt.settings.twin_dir / WORKBOOK).exists():
         return {"pump": pump, "state": "unavailable", "error": f"{WORKBOOK} is not in the twin folder"}
-    stamp = str(rt.raw[pump].get("timestamp"))
     entry = rt.fmea.get(pump)
-    if entry is None or entry["stamp"] != stamp:
-        if pump in rt.fmea_running:
-            return {"pump": pump, "state": "computing", "stale": entry.get("fm") if entry else None}
+    is_fresh = entry is not None and time.time() - entry["at"] < rt.settings.fmea_ttl_s
+    if not is_fresh and pump not in rt.fmea_running:
         rt.fmea_running.add(pump)
+        stamp = str(rt.raw[pump].get("timestamp"))
 
         def work() -> None:
             try:
@@ -45,5 +46,6 @@ def get(rt: Runtime, pump: int) -> dict:
                 rt.fmea_running.discard(pump)
 
         threading.Thread(target=work, daemon=True).start()
-        return {"pump": pump, "state": "computing", "stale": entry.get("fm") if entry else None}
-    return {"pump": pump, "timestamp": stamp, **{k: v for k, v in entry.items() if k != "stamp"}}
+    if entry is None:
+        return {"pump": pump, "state": "computing"}
+    return {"pump": pump, "refreshing": not is_fresh, **{k: v for k, v in entry.items() if k != "at"}}

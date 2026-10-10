@@ -14,6 +14,7 @@ class Settings:
     station: str = "Tataguni"
     source: str = "demo"
     summary_ttl_s: float = 30.0
+    fmea_ttl_s: float = 600.0
     api_key: str = ""
     cors_origins: tuple[str, ...] = ()
     db_path: str = "data/telemetry.sqlite3"  # ":memory:" for tests
@@ -32,6 +33,7 @@ class Settings:
             station=env.get("PUMPTWIN_STATION", "Tataguni"),
             source=source,
             summary_ttl_s=float(env.get("PUMPTWIN_SUMMARY_TTL_S", "30")),
+            fmea_ttl_s=float(env.get("PUMPTWIN_FMEA_TTL_S", "600")),
             api_key=env.get("PUMPTWIN_API_KEY", ""),
             cors_origins=tuple(o.strip() for o in env.get("PUMPTWIN_CORS", "").split(",") if o.strip()),
             db_path=env.get("PUMPTWIN_DB", "data/telemetry.sqlite3"),

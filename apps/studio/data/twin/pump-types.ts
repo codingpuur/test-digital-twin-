@@ -232,3 +232,41 @@ export type PumpCharts = {
   tabs: [string, string, string[]][]
   hidden: Record<string, string>
 }
+
+export type PumpFmeaRow = {
+  failure_mode: string
+  group: string
+  d_flow_pct: number | null
+  d_head_pct: number | null
+  d_power_pct: number | null
+  cavitation: string
+  cav_txt: string
+  vib_pump: number | null
+  vib_motor: number | null
+  brg_T: number | null
+  seal_T: number | null
+  winding_T: number | null
+  health_comp: string | null
+  health_was: number | null
+  health_delta: number
+  simulation: string
+  seen_by: string
+  /** Per measure: it differs from today, and by a lot. */
+  changed: Record<string, boolean>
+  big: Record<string, boolean>
+  /** Difference from today in the units of each measure. */
+  dd: Record<string, number | null>
+}
+
+export type PumpFmea = {
+  baseline: Record<string, number | string> | null
+  groups: { group: string; rows: PumpFmeaRow[] }[]
+  n: number
+  insights?: PumpFinding[]
+}
+
+export type PumpFmeaReply =
+  | { pump: number; state: 'computing' }
+  | { pump: number; state: 'unavailable'; error: string }
+  | { pump: number; state: 'error'; error: string }
+  | { pump: number; state: 'ready'; refreshing: boolean; timestamp: string; fm: PumpFmea }
