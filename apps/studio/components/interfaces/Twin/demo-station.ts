@@ -6,6 +6,8 @@ type PartSpec = {
   level: string
   room: string
   system: string
+  /** Equipment the part belongs to; pump and motor of one unit share it. */
+  equipment?: string
   shape: 'box' | 'cylinder' | 'sphere'
   position: [number, number, number]
   size: [number, number, number]
@@ -23,6 +25,7 @@ const pumpParts = (index: number, x: number): PartSpec[] => {
   return [
     {
       name: `P-${tag} Pump`,
+      equipment: `P-${tag}`,
       category: 'Pumps',
       level: 'Ground',
       room: HALL,
@@ -34,6 +37,7 @@ const pumpParts = (index: number, x: number): PartSpec[] => {
     },
     {
       name: `M-${tag} Motor`,
+      equipment: `P-${tag}`,
       category: 'Motors',
       level: 'Ground',
       room: HALL,
@@ -45,6 +49,7 @@ const pumpParts = (index: number, x: number): PartSpec[] => {
     },
     {
       name: `SV-${tag} Suction valve`,
+      equipment: `SV-${tag}`,
       category: 'Valves',
       level: 'Ground',
       room: HALL,
@@ -56,6 +61,7 @@ const pumpParts = (index: number, x: number): PartSpec[] => {
     },
     {
       name: `DV-${tag} Discharge valve`,
+      equipment: `DV-${tag}`,
       category: 'Valves',
       level: 'Ground',
       room: HALL,
@@ -334,6 +340,7 @@ export const buildDemoStation = (): THREE.Group => {
       room: part.room,
       category: part.category,
       system: part.system,
+      equipment: part.equipment ?? '',
       source: 'Demo model',
       guid: `demo-${String(index + 1).padStart(4, '0')}`,
       streamIds: STREAMS_BY_NAME[part.name],

@@ -44,12 +44,15 @@ import {
   useTwinTicketsQuery,
 } from '@/data/twin/twin-workspace-queries'
 import { useLocalStorage } from '@/hooks/misc/useLocalStorage'
+import { partsOfEquipment } from '@/lib/twin/equipment'
 
 const TwinViewer = dynamic(() => import('./TwinViewer').then((mod) => mod.TwinViewer), {
   ssr: false,
 })
 
 const DEMO_MODEL_NAME = 'Demo pumping station'
+// A stable empty list, so the viewer's highlight effect does not re-run on every render.
+const NO_GROUP_IDS: string[] = []
 
 type BottomTab = 'inventory' | 'streams' | 'simulation'
 
@@ -75,6 +78,7 @@ export const SiteWorkspace = () => {
   const [isLoadingModel, setIsLoadingModel] = useState(false)
   const [modelError, setModelError] = useState<string | null>(null)
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [highlightedEquipment, setHighlightedEquipment] = useState('')
   const store = useTwinStore(ref)
   const leftPanel = useCollapsiblePanel()
   // Properties stays closed until a part is selected (or the status bar button opens it).
@@ -127,6 +131,13 @@ export const SiteWorkspace = () => {
     [elements, hiddenCategories]
   )
   const selectedElement = elements.find((element) => element.id === selectedId) ?? null
+  const selectedEquipment = selectedElement?.equipment ?? ''
+  const equipmentParts = partsOfEquipment(elements, selectedEquipment)
+  // The whole unit only glows while a part of that same unit is selected.
+  const groupIds =
+    highlightedEquipment !== '' && highlightedEquipment === selectedEquipment
+      ? equipmentParts.map((part) => part.id)
+      : NO_GROUP_IDS
 
   // Live signals follow the timeline cursor; simulated signals come from the model.
   const cursorSecond = Math.floor(timeline.cursor / 1000)
@@ -420,6 +431,7 @@ export const SiteWorkspace = () => {
                 <TwinViewer
                   scene={scene}
                   selectedId={selectedId}
+                  groupIds={groupIds}
                   colorOverrides={voice.scoreColors ?? statusColors}
                   alertIds={voice.alertIds}
                   focusRequest={voice.focusRequest}
@@ -503,6 +515,11 @@ export const SiteWorkspace = () => {
                 setNewTicketAsset(assetTag)
                 setModuleId('tickets')
               }}
+              equipmentPartCount={equipmentParts.length}
+              isUnitHighlighted={groupIds.length > 0}
+              onToggleUnitHighlight={() =>
+                setHighlightedEquipment(groupIds.length > 0 ? '' : selectedEquipment)
+              }
               isSavingEdits={store.isSavingEdits}
               onSaveEdits={store.saveEdits}
               onRevertEdits={store.revertEdits}

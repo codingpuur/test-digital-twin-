@@ -4,6 +4,7 @@ import type { TwinElement } from './twin.types'
 
 const SELECTED_EMISSIVE = new THREE.Color('#3ecf8e')
 const NO_EMISSIVE = new THREE.Color('#000000')
+const GROUP_EMISSIVE_INTENSITY = 0.4
 
 /** The element an object belongs to: itself, or the nearest ancestor that carries element data. */
 export const findTwin = (object: THREE.Object3D): TwinElement | undefined => {
@@ -27,15 +28,22 @@ export const applyColorOverrides = (
   })
 }
 
-export const highlightSelection = (root: THREE.Object3D, selectedId: string | null) => {
+/** The selected element glows brightest; `groupIds` (the rest of its equipment) glow dimmer. */
+export const highlightSelection = (
+  root: THREE.Object3D,
+  selectedId: string | null,
+  groupIds: string[] = []
+) => {
+  const group = new Set(groupIds)
   root.traverse((object) => {
     const mesh = object as THREE.Mesh
     const material = mesh.material as THREE.MeshStandardMaterial | undefined
     if (!mesh.isMesh || !material?.emissive) return
     const twin = findTwin(mesh)
     const isSelected = !!twin && twin.id === selectedId
-    material.emissive.copy(isSelected ? SELECTED_EMISSIVE : NO_EMISSIVE)
-    material.emissiveIntensity = isSelected ? 0.8 : 0
+    const isGrouped = !isSelected && !!twin && group.has(twin.id)
+    material.emissive.copy(isSelected || isGrouped ? SELECTED_EMISSIVE : NO_EMISSIVE)
+    material.emissiveIntensity = isSelected ? 0.8 : isGrouped ? GROUP_EMISSIVE_INTENSITY : 0
   })
 }
 

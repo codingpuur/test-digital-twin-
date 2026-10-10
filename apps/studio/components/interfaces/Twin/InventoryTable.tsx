@@ -23,6 +23,7 @@ const COLUMNS: Column<TwinElement>[] = [
   { key: 'room', name: 'Rooms', resizable: true },
   { key: 'category', name: 'Category', resizable: true },
   { key: 'system', name: 'System', resizable: true },
+  { key: 'equipment', name: 'Equipment', resizable: true },
   { key: 'source', name: 'Source', resizable: true },
   { key: 'guid', name: 'GUID', resizable: true },
 ]
@@ -50,6 +51,7 @@ export const InventoryTable = ({ elements, selectedId, onSelect }: InventoryTabl
         element.category,
         element.room,
         element.system,
+        element.equipment ?? '',
       ].some((value) => value.toLowerCase().includes(query))
     })
   }, [elements, search, assetsOnly])

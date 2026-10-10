@@ -22,6 +22,7 @@ export const elementsToImportRows = (elements: TwinElement[]): AssetImportRow[] 
       level: element.level,
       room: element.room,
       system: element.system,
+      equipment: element.equipment ?? '',
       properties: {},
     },
   }))
@@ -76,6 +77,7 @@ const toElementFields = (asset: TwinAsset) => {
     level: resolved.level,
     room: resolved.room,
     system: resolved.system,
+    equipment: resolved.equipment,
     properties: resolved.properties,
     isEdited: Object.keys(asset.override).length > 0,
   }

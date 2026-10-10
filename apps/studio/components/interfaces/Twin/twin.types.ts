@@ -5,6 +5,8 @@ export type TwinElement = {
   room: string
   category: string
   system: string
+  /** Tag of the equipment this part belongs to; analysis (health, faults, RUL) is per equipment. */
+  equipment?: string
   source: string
   guid: string
   /** Ids of mock streams that report on this element. */

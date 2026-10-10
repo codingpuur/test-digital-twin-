@@ -25,6 +25,7 @@ const modelRow = (
     level: '',
     room: '',
     system: '',
+    equipment: '',
     properties: {},
     ...overrides,
   },
@@ -144,10 +145,18 @@ describe('toOverride', () => {
       level: 'L1',
       room: '',
       system: '',
+      equipment: '',
       properties: {},
     }
     expect(
-      toOverride(imported, { name: 'Booster', category: 'Pump', level: 'L1', room: '', system: '' })
+      toOverride(imported, {
+        name: 'Booster',
+        category: 'Pump',
+        level: 'L1',
+        room: '',
+        system: '',
+        equipment: '',
+      })
     ).toEqual({ name: 'Booster' })
   })
 })

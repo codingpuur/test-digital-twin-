@@ -9,6 +9,7 @@ const LABELS: Record<keyof EditableValues, string> = {
   level: 'Level',
   room: 'Room',
   system: 'System',
+  equipment: 'Equipment',
 }
 
 type AssetEditorProps = {

@@ -57,7 +57,8 @@ export const loadStepFile = async (file: File): Promise<THREE.Group> => {
   group.name = file.name
   group.scale.setScalar(MM_TO_M)
 
-  const walk = (node: OcctNode, path: string) => {
+  // A part inside a sub-assembly (not the file's top node) belongs to that sub-assembly's equipment.
+  const walk = (node: OcctNode, path: string, parentName: string) => {
     if (node.meshes.length > 0) {
       const name = node.name || `Part ${group.children.length + 1}`
       const part = new THREE.Group()
@@ -69,6 +70,7 @@ export const loadStepFile = async (file: File): Promise<THREE.Group> => {
         room: '',
         category: 'Part',
         system: '',
+        equipment: parentName,
         source: file.name,
         guid: '',
         tag: name,
@@ -80,9 +82,11 @@ export const loadStepFile = async (file: File): Promise<THREE.Group> => {
       })
       group.add(part)
     }
-    node.children.forEach((child, index) => walk(child, `${path}.${index}`))
+    node.children.forEach((child, index) =>
+      walk(child, `${path}.${index}`, path === '0' ? '' : node.name)
+    )
   }
-  walk(result.root, '0')
+  walk(result.root, '0', '')
 
   // The viewer frames the model from its world-space box, which needs the scale applied already.
   group.updateMatrixWorld(true)

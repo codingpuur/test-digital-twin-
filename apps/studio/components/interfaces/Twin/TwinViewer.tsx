@@ -15,6 +15,8 @@ import { AlertBlink, CameraFocus, type FocusRequest } from './ViewerEffects'
 type TwinViewerProps = {
   scene: THREE.Object3D
   selectedId: string | null
+  /** Other parts of the selected element's equipment, glowing dimmer than the selection. */
+  groupIds?: string[]
   /** Element id to colour, e.g. by status. Elements missing from the map keep their own colour. */
   colorOverrides?: Record<string, string> | null
   bindings?: AnimationBinding[]
@@ -30,9 +32,13 @@ type TwinViewerProps = {
   onSelect: (id: string | null) => void
 }
 
+// A stable empty list, so the highlight effect does not re-run on every render.
+const NO_GROUP: string[] = []
+
 export const TwinViewer = ({
   scene,
   selectedId,
+  groupIds = NO_GROUP,
   colorOverrides = null,
   bindings = [],
   getSignals,
@@ -51,8 +57,8 @@ export const TwinViewer = ({
   const hasLabels = showLabels && !!getSignals
 
   useEffect(() => {
-    highlightSelection(scene, selectedId)
-  }, [scene, selectedId])
+    highlightSelection(scene, selectedId, groupIds)
+  }, [scene, selectedId, groupIds])
 
   const handleClick = (event: ThreeEvent<MouseEvent>) => {
     event.stopPropagation()
@@ -90,6 +96,7 @@ export const TwinViewer = ({
           scene={scene}
           ids={alertIds}
           selectedId={selectedId}
+          groupIds={groupIds}
           colorOverrides={colorOverrides}
         />
         {getSignals && (

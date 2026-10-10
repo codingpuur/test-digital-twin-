@@ -8,6 +8,8 @@ export type AssetFields = {
   level: string
   room: string
   system: string
+  /** Tag of the equipment (e.g. a pump-motor unit) this part belongs to; AI/ML results hang off it. */
+  equipment: string
   properties: Record<string, string>
 }
 
@@ -52,6 +54,7 @@ export const EMPTY_FIELDS: AssetFields = {
   level: '',
   room: '',
   system: '',
+  equipment: '',
   properties: {},
 }
 
@@ -71,12 +74,22 @@ export const findMatch = (assets: TwinAsset[], row: AssetImportRow) =>
   assets.find((asset) => row.guid !== '' && asset.guid === row.guid)
 
 /** Newer non-blank values win; blanks never erase what an earlier import supplied. */
-const mergeFields = (current: AssetFields, incoming: AssetFields): AssetFields => ({
+const mergeFields = (
+  current: AssetFields,
+  incoming: AssetFields,
+  mode: ImportMode
+): AssetFields => ({
   name: isBlank(incoming.name) ? current.name : incoming.name,
   category: isBlank(incoming.category) ? current.category : incoming.category,
   level: isBlank(incoming.level) ? current.level : incoming.level,
   room: isBlank(incoming.room) ? current.room : incoming.room,
   system: isBlank(incoming.system) ? current.system : incoming.system,
+  // A 3D model only guesses the equipment (e.g. from the STEP assembly tree), so a value a CSV or a
+  // user supplied is kept; only a CSV can replace it.
+  equipment:
+    isBlank(incoming.equipment) || (mode === 'model' && current.equipment !== '')
+      ? current.equipment
+      : incoming.equipment,
   properties: { ...current.properties, ...incoming.properties },
 })
 
@@ -101,7 +114,7 @@ export const mergeImport = (
     if (asset) {
       diff.matched += 1
       seen.add(asset.id)
-      asset.imported = mergeFields(asset.imported, row.fields)
+      asset.imported = mergeFields(asset.imported, row.fields, mode)
       asset.guid = row.guid || asset.guid
       asset.status = 'active'
       asset.revision = revision
@@ -123,7 +136,7 @@ export const mergeImport = (
       status: 'active',
       hasGeometry: row.hasGeometry,
       revision,
-      imported: mergeFields(EMPTY_FIELDS, row.fields),
+      imported: mergeFields(EMPTY_FIELDS, row.fields, mode),
       override: {},
     }
     seen.add(created.id)
@@ -143,7 +156,7 @@ export const mergeImport = (
   return { assets: next, diff }
 }
 
-export const EDITABLE_FIELDS = ['name', 'category', 'level', 'room', 'system'] as const
+export const EDITABLE_FIELDS = ['name', 'category', 'level', 'room', 'system', 'equipment'] as const
 export type EditableField = (typeof EDITABLE_FIELDS)[number]
 export type EditableValues = Pick<AssetFields, EditableField>
 

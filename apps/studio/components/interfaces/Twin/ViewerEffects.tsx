@@ -20,11 +20,13 @@ export const AlertBlink = ({
   scene,
   ids,
   selectedId,
+  groupIds,
   colorOverrides,
 }: {
   scene: THREE.Object3D
   ids: string[]
   selectedId: string | null
+  groupIds: string[]
   colorOverrides: Record<string, string> | null | undefined
 }) => {
   const meshes = useMemo(() => meshesOfElements(scene, ids), [scene, ids])
@@ -36,7 +38,7 @@ export const AlertBlink = ({
       if (!isBlinking.current) return
       isBlinking.current = false
       applyColorOverrides(scene, colorOverrides ?? null)
-      highlightSelection(scene, selectedId)
+      highlightSelection(scene, selectedId, groupIds)
       return
     }
     isBlinking.current = true

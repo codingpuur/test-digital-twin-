@@ -48,6 +48,7 @@ const KNOWN_COLUMNS = {
   level: ['level', 'floor', 'storey'],
   room: ['room', 'space', 'location'],
   system: ['system'],
+  equipment: ['equipment', 'equipment tag', 'equipment id', 'assembly', 'unit'],
   guid: ['guid', 'globalid', 'global id'],
 } as const
 

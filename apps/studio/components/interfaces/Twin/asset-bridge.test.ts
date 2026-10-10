@@ -30,6 +30,7 @@ const asset = (overrides: Partial<TwinAsset> = {}): TwinAsset => ({
     level: 'L1',
     room: '',
     system: '',
+    equipment: 'P-101',
     properties: { Power: '22 kW' },
   },
   override: {},
