@@ -1,0 +1,4 @@
+# The twin's own files, data and caches are supplied through PUMP_TWIN_DIR and are not committed.
+twin/
+.venv/
+__pycache__/

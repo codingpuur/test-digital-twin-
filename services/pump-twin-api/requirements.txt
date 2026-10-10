@@ -1,0 +1,12 @@
+fastapi>=0.115
+uvicorn[standard]>=0.30
+httpx>=0.27
+# Needed by the pump twin itself (pump_3d_twin.py / pump_twin_bwssb.py)
+numpy
+scipy
+pandas
+openpyxl
+gmsh
+trimesh
+plotly
+fast-simplification
