@@ -79,7 +79,7 @@ export const StreamsTable = () => {
   return (
     <div className="h-full overflow-auto">
       <table className="w-full text-xs">
-        <thead className="sticky top-0 bg-surface-100 text-left text-foreground-lighter">
+        <thead className="sticky top-0 bg-surface-100/90 text-left text-foreground-lighter">
           {table.getHeaderGroups().map((group) => (
             <tr key={group.id} className="border-b">
               {group.headers.map((header) => (

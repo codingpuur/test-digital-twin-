@@ -1,13 +1,21 @@
-import { Images, Maximize2, PanelBottom, PanelLeft, PanelRight } from 'lucide-react'
+import { Images, Maximize2, PanelBottom, PanelLeft } from 'lucide-react'
 import { cn } from 'ui'
 
-import type { CollapsiblePanel } from './useCollapsiblePanel'
 import { ButtonTooltip } from '@/components/ui/ButtonTooltip'
 
+/** What the toggle needs from a panel or drawer. */
+type Toggleable = {
+  isCollapsed: boolean
+  toggle: () => void
+  collapse: () => void
+  expand: () => void
+}
+
 type PanelTogglesProps = {
-  left: CollapsiblePanel
-  right: CollapsiblePanel
-  bottom: CollapsiblePanel
+  left: Toggleable
+  bottom: Toggleable
+  /** Distance from the bottom of the view, so the toolbar sits above an open drawer. */
+  bottomOffset: number
   isViewsOpen: boolean
   onToggleViews: () => void
 }
@@ -15,12 +23,12 @@ type PanelTogglesProps = {
 /** Show or hide the side panels and the bottom drawer; "Focus 3D" hides all three at once. */
 export const PanelToggles = ({
   left,
-  right,
   bottom,
+  bottomOffset,
   isViewsOpen,
   onToggleViews,
 }: PanelTogglesProps) => {
-  const panels = [left, right, bottom]
+  const panels = [left, bottom]
   const isFocused = panels.every((panel) => panel.isCollapsed)
 
   const handleFocus = () =>
@@ -29,11 +37,13 @@ export const PanelToggles = ({
   const items = [
     { label: 'left panel', icon: PanelLeft, panel: left },
     { label: 'bottom panel', icon: PanelBottom, panel: bottom },
-    { label: 'properties panel', icon: PanelRight, panel: right },
   ]
 
   return (
-    <div className="absolute bottom-3 right-3 z-10 flex items-center gap-x-1 rounded-md border bg-surface-100/90 p-1">
+    <div
+      style={{ bottom: bottomOffset }}
+      className="absolute right-3 z-30 flex items-center gap-x-1 rounded-md border bg-surface-100/90 p-1"
+    >
       {items.map(({ label, icon: Icon, panel }) => (
         <ButtonTooltip
           key={label}

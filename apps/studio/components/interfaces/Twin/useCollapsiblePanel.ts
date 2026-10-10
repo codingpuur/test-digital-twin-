@@ -1,26 +1,25 @@
-import { useRef, useState } from 'react'
+import { useState } from 'react'
 import { usePanelRef } from 'ui'
 
 /** A resizable panel that can also be closed and reopened (and closes when dragged below its minimum). */
 type Options = {
   /** Begin closed, e.g. a drawer that only opens when something asks for it. */
   startCollapsed?: boolean
-  /** Size to open to, as a percentage, when there is no earlier size to return to. */
-  openPercent?: number
+  /** Size to open to when there is no earlier size to return to (a number is pixels). */
+  openSize?: number | string
 }
 
-export const useCollapsiblePanel = ({ startCollapsed = false, openPercent }: Options = {}) => {
+export const useCollapsiblePanel = ({ startCollapsed = false, openSize }: Options = {}) => {
   const ref = usePanelRef()
   const [isCollapsed, setIsCollapsed] = useState(startCollapsed)
-  const lastOpenPercent = useRef<number | null>(null)
 
   const expand = () => {
     const handle = ref.current
     if (!handle?.isCollapsed()) return
-    // A panel that started closed has no earlier size for `expand()` to return to.
-    const percent = lastOpenPercent.current ?? openPercent
-    if (percent === undefined) handle.expand()
-    else handle.resize(`${percent}%`)
+    // A panel that started closed has no earlier size for `expand()` to return to, so it opens to
+    // a fixed size instead.
+    if (openSize !== undefined) handle.resize(openSize)
+    else handle.expand()
   }
 
   const toggle = () => {
@@ -37,10 +36,7 @@ export const useCollapsiblePanel = ({ startCollapsed = false, openPercent }: Opt
       collapsible: true,
       collapsedSize: 0,
       panelRef: ref,
-      onResize: (size: { asPercentage: number }) => {
-        if (size.asPercentage > 0) lastOpenPercent.current = size.asPercentage
-        setIsCollapsed(ref.current?.isCollapsed() ?? false)
-      },
+      onResize: () => setIsCollapsed(ref.current?.isCollapsed() ?? false),
     },
   }
 }

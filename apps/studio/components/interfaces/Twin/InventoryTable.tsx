@@ -55,7 +55,7 @@ export const InventoryTable = ({ elements, selectedId, onSelect }: InventoryTabl
   }, [elements, search, assetsOnly])
 
   return (
-    <div className="flex h-full flex-col bg-surface-100">
+    <div className="flex h-full flex-col">
       <div className="flex items-center justify-between gap-x-4 border-b px-4 py-2">
         <div className="flex items-center gap-x-3">
           <h3 className="text-xs uppercase tracking-wide text-foreground-light">Inventory</h3>
@@ -79,7 +79,7 @@ export const InventoryTable = ({ elements, selectedId, onSelect }: InventoryTabl
         </div>
       </div>
       <DataGrid
-        className="h-full flex-1 text-xs"
+        className="h-full flex-1 text-xs [--rdg-background-color:transparent] [--rdg-header-background-color:transparent]"
         columns={COLUMNS}
         rows={rows}
         rowKeyGetter={(row) => row.id}

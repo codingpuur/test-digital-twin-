@@ -3,9 +3,10 @@ import dynamic from 'next/dynamic'
 import { parseAsString, useQueryState } from 'nuqs'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type * as THREE from 'three'
-import { cn, ResizableHandle, ResizablePanel, ResizablePanelGroup, Switch } from 'ui'
+import { ResizableHandle, ResizablePanel, ResizablePanelGroup, Switch } from 'ui'
 
 import { applyAssets } from './asset-bridge'
+import { BottomDrawer } from './BottomDrawer'
 import { buildDemoStation } from './demo-station'
 import { ImportDiffModal } from './ImportDiffModal'
 import { InventoryTable } from './InventoryTable'
@@ -22,6 +23,7 @@ import { SimulationResults } from './simulation/SimulationResults'
 import { useSimulation } from './simulation/useSimulation'
 import { getStatusColors, getUnlinkedColors, STATUS_COLORS } from './status-colors'
 import { applyStreamColors, getStreamReadings, groupStreamsByTag } from './stream-bridge'
+import { TOGGLE_STREAMS_DRAWER_EVENT } from './streams-drawer-events'
 import { StreamsTable } from './StreamsTable'
 import { DEFAULT_TWIN_MODULE } from './twin.types'
 import { useCollapsiblePanel } from './useCollapsiblePanel'
@@ -32,6 +34,7 @@ import type { TwinView, ViewSnapshot } from './views/views.types'
 import { ViewsPanel } from './views/ViewsPanel'
 import { useVoiceCommands } from './voice/useVoiceCommands'
 import { VoiceAgent } from './voice/VoiceAgent'
+import { WorkspaceStatusBar } from './WorkspaceStatusBar'
 import { TimelineBar } from '@/components/ui/Timeline/TimelineBar'
 import { TimelinePill } from '@/components/ui/Timeline/TimelinePill'
 import { useTimeline } from '@/components/ui/Timeline/useTimeline'
@@ -49,6 +52,12 @@ const TwinViewer = dynamic(() => import('./TwinViewer').then((mod) => mod.TwinVi
 const DEMO_MODEL_NAME = 'Demo pumping station'
 
 type BottomTab = 'inventory' | 'streams' | 'simulation'
+
+const DRAWER_TABS = [
+  { id: 'inventory', label: 'Inventory' },
+  { id: 'streams', label: 'Streams' },
+  { id: 'simulation', label: 'Simulation' },
+]
 
 export const SiteWorkspace = () => {
   const { ref } = useParams()
@@ -68,9 +77,18 @@ export const SiteWorkspace = () => {
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const store = useTwinStore(ref)
   const leftPanel = useCollapsiblePanel()
-  const rightPanel = useCollapsiblePanel()
-  // The drawer stays closed until something needs it: the Streams item in the sidebar, or a simulation.
-  const bottomPanel = useCollapsiblePanel({ startCollapsed: true, openPercent: 42 })
+  // Properties stays closed until a part is selected (or the status bar button opens it).
+  const rightPanel = useCollapsiblePanel({ startCollapsed: true, openSize: 300 })
+  // The bottom drawer floats over the 3D view and stays closed until something needs it: the
+  // Streams item in the sidebar, or a simulation.
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false)
+  const [drawerHeight, setDrawerHeight] = useLocalStorage('twin-drawer-height', 320)
+  const drawer = {
+    isCollapsed: !isDrawerOpen,
+    toggle: () => setIsDrawerOpen((previous) => !previous),
+    collapse: () => setIsDrawerOpen(false),
+    expand: () => setIsDrawerOpen(true),
+  }
   const streamsQuery = useTwinStreamsQuery(ref)
   // Revision of the saved model already shown, so restoring (or our own upload) is not re-applied.
   const shownRevision = useRef<number | null>(null)
@@ -211,18 +229,31 @@ export const SiteWorkspace = () => {
   useEffect(() => {
     if (isSimulation) {
       setBottomTab('simulation')
-      bottomPanel.expand()
+      drawer.expand()
     } else {
       setBottomTab((tab) => (tab === 'simulation' ? 'inventory' : tab))
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isSimulation])
 
+  // Selecting a part (in the 3D view or the inventory) opens the Properties panel.
+  useEffect(() => {
+    if (selectedId) rightPanel.expand()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedId])
+
+  // Clicking Streams in the sidebar while it is already open toggles the drawer.
+  useEffect(() => {
+    const handleToggle = () => setIsDrawerOpen((previous) => !previous)
+    window.addEventListener(TOGGLE_STREAMS_DRAWER_EVENT, handleToggle)
+    return () => window.removeEventListener(TOGGLE_STREAMS_DRAWER_EVENT, handleToggle)
+  }, [])
+
   // Opening Streams in the sidebar opens the drawer on the streams table.
   useEffect(() => {
     if (moduleId !== 'streams') return
     setBottomTab('streams')
-    bottomPanel.expand()
+    drawer.expand()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [moduleId])
 
@@ -284,6 +315,9 @@ export const SiteWorkspace = () => {
     })
   }
 
+  // Overlays that sit on the bottom edge of the 3D view lift above an open drawer.
+  const overlayBottom = isDrawerOpen ? drawerHeight + 12 : 12
+
   const handleBindingsChange = (next: AnimationBinding[]) =>
     // On an uploaded model the demo defaults are hidden, not deleted: keep them for when the demo returns.
     setStoredBindings(
@@ -293,157 +327,139 @@ export const SiteWorkspace = () => {
     )
 
   return (
-    <>
-      <ResizablePanelGroup orientation="horizontal" className="h-full w-full">
-        <ResizablePanel
-          id="twin-module-panel"
-          defaultSize={300}
-          minSize={220}
-          maxSize={480}
-          {...leftPanel.panelProps}
-        >
-          <ModulePanel
-            moduleId={moduleId}
-            elements={elements}
-            modelName={modelName}
-            modelRevision={isDemoModel ? undefined : store.model?.revision}
-            isImportingCsv={store.isImportingCsv}
-            csvResult={store.csvResult}
-            csvError={store.csvError}
-            onUploadCsv={store.importCsv}
-            newTicketAsset={newTicketAsset}
-            onNewTicketHandled={() => setNewTicketAsset(null)}
-            isLoadingModel={isLoadingModel}
-            modelError={modelError}
-            hiddenCategories={hiddenCategories}
-            onToggleCategory={handleToggleCategory}
-            onUploadFile={handleUploadFile}
-            onUseDemo={handleUseDemo}
-            simulation={simulation}
-            dataSource={dataSource}
-            onDataSourceChange={setDataSource}
-          />
-        </ResizablePanel>
-        <ResizableHandle withHandle />
-        <ResizablePanel id="twin-main">
-          <ResizablePanelGroup orientation="vertical" className="h-full w-full">
-            <ResizablePanel id="twin-viewer" defaultSize="100%" minSize="25%">
-              <div className="flex h-full w-full flex-col bg-surface-100">
-                {isSimulation && <SimulationBar simulation={simulation} />}
-                {!isSimulation && isTimelineOpen && (
-                  <TimelineBar timeline={timeline} onCollapse={() => setIsTimelineOpen(false)} />
+    <div className="flex h-full w-full flex-col">
+      <div className="min-h-0 flex-1">
+        <ResizablePanelGroup orientation="horizontal" className="h-full w-full">
+          <ResizablePanel
+            id="twin-module-panel"
+            defaultSize={300}
+            minSize={220}
+            maxSize={480}
+            {...leftPanel.panelProps}
+          >
+            <ModulePanel
+              moduleId={moduleId}
+              elements={elements}
+              modelName={modelName}
+              modelRevision={isDemoModel ? undefined : store.model?.revision}
+              isImportingCsv={store.isImportingCsv}
+              csvResult={store.csvResult}
+              csvError={store.csvError}
+              onUploadCsv={store.importCsv}
+              newTicketAsset={newTicketAsset}
+              onNewTicketHandled={() => setNewTicketAsset(null)}
+              isLoadingModel={isLoadingModel}
+              modelError={modelError}
+              hiddenCategories={hiddenCategories}
+              onToggleCategory={handleToggleCategory}
+              onUploadFile={handleUploadFile}
+              onUseDemo={handleUseDemo}
+              simulation={simulation}
+              dataSource={dataSource}
+              onDataSourceChange={setDataSource}
+            />
+          </ResizablePanel>
+          <ResizableHandle withHandle />
+          <ResizablePanel id="twin-main">
+            <div className="flex h-full w-full flex-col bg-surface-100">
+              {isSimulation && <SimulationBar simulation={simulation} />}
+              {!isSimulation && isTimelineOpen && (
+                <TimelineBar timeline={timeline} onCollapse={() => setIsTimelineOpen(false)} />
+              )}
+              <div className="relative min-h-0 flex-1">
+                <PanelToggles
+                  left={leftPanel}
+                  bottom={drawer}
+                  bottomOffset={overlayBottom}
+                  isViewsOpen={isViewsOpen}
+                  onToggleViews={() => setIsViewsOpen((previous) => !previous)}
+                />
+                {isViewsOpen && (
+                  <ViewsPanel
+                    siteRef={ref ?? ''}
+                    views={views}
+                    activeViewId={activeViewId}
+                    onSave={handleSaveView}
+                    onSaveAs={handleSaveViewAs}
+                    onApply={applyView}
+                    onUpdate={(view) => {
+                      const snapshot = takeSnapshot()
+                      if (snapshot) updateView(view.id, snapshot)
+                    }}
+                    onRename={(view, name) => renameView(view.id, name)}
+                    onDelete={(view) => {
+                      deleteView(view.id)
+                      if (view.id === activeViewId) setActiveViewId(null)
+                    }}
+                    onClose={() => setIsViewsOpen(false)}
+                  />
                 )}
-                <div className="relative min-h-0 flex-1">
-                  <PanelToggles
-                    left={leftPanel}
-                    right={rightPanel}
-                    bottom={bottomPanel}
-                    isViewsOpen={isViewsOpen}
-                    onToggleViews={() => setIsViewsOpen((previous) => !previous)}
-                  />
-                  {isViewsOpen && (
-                    <ViewsPanel
-                      siteRef={ref ?? ''}
-                      views={views}
-                      activeViewId={activeViewId}
-                      onSave={handleSaveView}
-                      onSaveAs={handleSaveViewAs}
-                      onApply={applyView}
-                      onUpdate={(view) => {
-                        const snapshot = takeSnapshot()
-                        if (snapshot) updateView(view.id, snapshot)
-                      }}
-                      onRename={(view, name) => renameView(view.id, name)}
-                      onDelete={(view) => {
-                        deleteView(view.id)
-                        if (view.id === activeViewId) setActiveViewId(null)
-                      }}
-                      onClose={() => setIsViewsOpen(false)}
-                    />
+                <div className="absolute left-3 top-3 z-10 flex max-w-[calc(100%-24px)] flex-col items-start gap-y-2">
+                  {!isSimulation && !isTimelineOpen && (
+                    <TimelinePill timeline={timeline} onExpand={() => setIsTimelineOpen(true)} />
                   )}
-                  <div className="absolute left-3 top-3 z-10 flex max-w-[calc(100%-24px)] flex-col items-start gap-y-2">
-                    {!isSimulation && !isTimelineOpen && (
-                      <TimelinePill timeline={timeline} onExpand={() => setIsTimelineOpen(true)} />
-                    )}
-                    <VoiceAgent
-                      onCommand={voice.handleCommand}
-                      isAwaitingConfirmation={voice.pendingTicketTag !== null}
-                      hasHighlights={voice.alertIds.length > 0 || voice.scoreColors !== null}
-                      onClear={voice.clear}
-                    />
-                    {isSimulation && simulation.snapshot.alarms.length > 0 && (
-                      <div className="pointer-events-none flex flex-col items-start gap-y-1.5">
-                        {simulation.snapshot.alarms.map((alarm) => (
-                          <div
-                            key={alarm}
-                            className="animate-pulse rounded-md border border-destructive bg-destructive-200 px-2.5 py-1 text-xs text-destructive"
-                          >
-                            ⚠ {alarm}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                  <TwinViewer
-                    scene={scene}
-                    selectedId={selectedId}
-                    colorOverrides={voice.scoreColors ?? statusColors}
-                    alertIds={voice.alertIds}
-                    focusRequest={voice.focusRequest}
-                    onViewerReady={setViewerApi}
-                    bindings={bindings}
-                    getSignals={getSignals}
-                    showLabels={isDemoModel}
-                    onSelect={setSelectedId}
+                  <VoiceAgent
+                    onCommand={voice.handleCommand}
+                    isAwaitingConfirmation={voice.pendingTicketTag !== null}
+                    hasHighlights={voice.alertIds.length > 0 || voice.scoreColors !== null}
+                    onClear={voice.clear}
                   />
-                  <div className="absolute bottom-3 left-3 flex flex-col gap-y-2 rounded-md border bg-surface-100/90 px-3 py-2 text-xs">
-                    <label className="flex items-center gap-x-2">
-                      <Switch checked={colorByStatus} onCheckedChange={setColorByStatus} />
-                      Colour by status
-                    </label>
-                    {colorByStatus && (
-                      <div className="flex items-center gap-x-3 text-foreground-light">
-                        {(['Normal', 'Warning', 'Unlinked'] as const).map((status) => (
-                          <span key={status} className="flex items-center gap-x-1">
-                            <span
-                              className="inline-block size-2 rounded-full"
-                              style={{ background: STATUS_COLORS[status] }}
-                            />
-                            {status}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                  </div>
+                  {isSimulation && simulation.snapshot.alarms.length > 0 && (
+                    <div className="pointer-events-none flex flex-col items-start gap-y-1.5">
+                      {simulation.snapshot.alarms.map((alarm) => (
+                        <div
+                          key={alarm}
+                          className="animate-pulse rounded-md border border-destructive bg-destructive-200 px-2.5 py-1 text-xs text-destructive"
+                        >
+                          ⚠ {alarm}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
-              </div>
-            </ResizablePanel>
-            <ResizableHandle withHandle />
-            <ResizablePanel
-              id="twin-bottom"
-              defaultSize="0%"
-              minSize="15%"
-              {...bottomPanel.panelProps}
-            >
-              <div className="flex h-full flex-col bg-surface-100">
-                <div className="flex gap-x-1 border-b px-3">
-                  {(['inventory', 'streams', 'simulation'] as const).map((tab) => (
-                    <button
-                      key={tab}
-                      type="button"
-                      onClick={() => setBottomTab(tab)}
-                      className={cn(
-                        'border-b-2 px-3 py-2 text-sm capitalize transition-colors',
-                        bottomTab === tab
-                          ? 'border-brand text-foreground'
-                          : 'border-transparent text-foreground-light hover:text-foreground'
-                      )}
-                    >
-                      {tab}
-                    </button>
-                  ))}
+                <TwinViewer
+                  scene={scene}
+                  selectedId={selectedId}
+                  colorOverrides={voice.scoreColors ?? statusColors}
+                  alertIds={voice.alertIds}
+                  focusRequest={voice.focusRequest}
+                  onViewerReady={setViewerApi}
+                  bindings={bindings}
+                  getSignals={getSignals}
+                  showLabels={isDemoModel}
+                  onSelect={setSelectedId}
+                />
+                <div
+                  style={{ bottom: overlayBottom }}
+                  className="absolute left-3 flex flex-col gap-y-2 rounded-md border bg-surface-100/90 px-3 py-2 text-xs"
+                >
+                  <label className="flex items-center gap-x-2">
+                    <Switch checked={colorByStatus} onCheckedChange={setColorByStatus} />
+                    Colour by status
+                  </label>
+                  {colorByStatus && (
+                    <div className="flex items-center gap-x-3 text-foreground-light">
+                      {(['Normal', 'Warning', 'Unlinked'] as const).map((status) => (
+                        <span key={status} className="flex items-center gap-x-1">
+                          <span
+                            className="inline-block size-2 rounded-full"
+                            style={{ background: STATUS_COLORS[status] }}
+                          />
+                          {status}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
-                <div className="min-h-0 flex-1">
+                <BottomDrawer
+                  isOpen={isDrawerOpen}
+                  height={drawerHeight}
+                  onHeightChange={setDrawerHeight}
+                  tabs={DRAWER_TABS}
+                  activeTab={bottomTab}
+                  onTabChange={(tab) => setBottomTab(tab as BottomTab)}
+                  onClose={drawer.collapse}
+                >
                   {bottomTab === 'inventory' && (
                     <InventoryTable
                       elements={visibleElements}
@@ -458,40 +474,48 @@ export const SiteWorkspace = () => {
                       log={simulation.snapshot.log}
                     />
                   )}
-                </div>
+                </BottomDrawer>
               </div>
-            </ResizablePanel>
-          </ResizablePanelGroup>
-        </ResizablePanel>
-        <ResizableHandle withHandle />
-        <ResizablePanel
-          id="twin-properties"
-          defaultSize={300}
-          minSize={220}
-          maxSize={480}
-          {...rightPanel.panelProps}
-        >
-          <PropertiesPanel
-            element={selectedElement}
-            signals={signals}
-            isDemoModel={isDemoModel}
-            streamReadings={
-              selectedElement ? getStreamReadings(selectedElement, streamsByTag, replayAt) : []
-            }
-            readingsLabel={isSimulation ? 'simulated' : new Date(timeline.cursor).toLocaleString()}
-            bindings={bindings}
-            onBindingsChange={handleBindingsChange}
-            tickets={tickets}
-            onCreateTicket={(assetTag) => {
-              setNewTicketAsset(assetTag)
-              setModuleId('tickets')
-            }}
-            isSavingEdits={store.isSavingEdits}
-            onSaveEdits={store.saveEdits}
-            onRevertEdits={store.revertEdits}
-          />
-        </ResizablePanel>
-      </ResizablePanelGroup>
+            </div>
+          </ResizablePanel>
+          <ResizableHandle withHandle />
+          <ResizablePanel
+            id="twin-properties"
+            defaultSize={0}
+            minSize={220}
+            maxSize={480}
+            {...rightPanel.panelProps}
+          >
+            <PropertiesPanel
+              element={selectedElement}
+              signals={signals}
+              isDemoModel={isDemoModel}
+              streamReadings={
+                selectedElement ? getStreamReadings(selectedElement, streamsByTag, replayAt) : []
+              }
+              readingsLabel={
+                isSimulation ? 'simulated' : new Date(timeline.cursor).toLocaleString()
+              }
+              bindings={bindings}
+              onBindingsChange={handleBindingsChange}
+              tickets={tickets}
+              onCreateTicket={(assetTag) => {
+                setNewTicketAsset(assetTag)
+                setModuleId('tickets')
+              }}
+              isSavingEdits={store.isSavingEdits}
+              onSaveEdits={store.saveEdits}
+              onRevertEdits={store.revertEdits}
+            />
+          </ResizablePanel>
+        </ResizablePanelGroup>
+      </div>
+      <WorkspaceStatusBar
+        modelName={modelName}
+        elementCount={elements.length}
+        isPropertiesOpen={!rightPanel.isCollapsed}
+        onToggleProperties={rightPanel.toggle}
+      />
       <ImportDiffModal
         diff={store.pending?.diff ?? null}
         fileName={store.pending?.file.name ?? ''}
@@ -499,6 +523,6 @@ export const SiteWorkspace = () => {
         onConfirm={handleConfirmImport}
         onCancel={store.cancelPending}
       />
-    </>
+    </div>
   )
 }

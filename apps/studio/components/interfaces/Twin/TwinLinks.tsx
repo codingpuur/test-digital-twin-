@@ -17,6 +17,7 @@ import {
 import { useRouter } from 'next/router'
 import { SidebarGroup, SidebarMenu } from 'ui'
 
+import { announceStreamsClick } from './streams-drawer-events'
 import { DEFAULT_TWIN_MODULE } from './twin.types'
 import { ICON_SIZE, ICON_STROKE_WIDTH, SideBarNavLink } from '@/components/interfaces/Sidebar'
 
@@ -72,6 +73,12 @@ export const TwinLinks = () => {
             key={route.key}
             route={{ ...route, link: `/project/${ref}?module=${route.key}` }}
             active={!isAssistant && activeModule === route.key}
+            // Clicking Streams again, while it is already open, closes the drawer.
+            onClick={
+              route.key === 'streams' && activeModule === 'streams'
+                ? announceStreamsClick
+                : undefined
+            }
           />
         ))}
       </SidebarMenu>
