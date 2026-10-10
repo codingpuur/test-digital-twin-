@@ -19,7 +19,10 @@ export type TwinStream = {
 
 export type StreamReading = { ts: number; value: number }
 
-export type IncomingReading = { stream: string; value: number; ts?: number }
+/** How a brand-new stream is set up. Never applied to a stream that already exists, so edits stay. */
+export type StreamMeta = Partial<Pick<TwinStream, 'assetTag' | 'parameter' | 'unit' | 'warnAbove'>>
+
+export type IncomingReading = { stream: string; value: number; ts?: number; meta?: StreamMeta }
 
 export const MAX_READINGS_PER_STREAM = 500
 
@@ -77,10 +80,10 @@ export const ingestReadings = (
       stream = {
         id: createId(),
         key: item.stream,
-        assetTag: '',
-        parameter: '',
-        unit: '',
-        warnAbove: null,
+        assetTag: item.meta?.assetTag ?? '',
+        parameter: item.meta?.parameter ?? '',
+        unit: item.meta?.unit ?? '',
+        warnAbove: item.meta?.warnAbove ?? null,
         lastValue: null,
         lastTs: null,
       }

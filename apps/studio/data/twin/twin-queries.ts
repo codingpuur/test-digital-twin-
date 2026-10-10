@@ -24,6 +24,7 @@ export const twinKeys = {
     ['twin', ref, 'model-file', revision] as const,
   assets: (ref: string | undefined) => ['twin', ref, 'assets'] as const,
   streams: (ref: string | undefined) => ['twin', ref, 'streams'] as const,
+  poll: (ref: string | undefined) => ['twin', ref, 'poll'] as const,
 }
 
 export const useTwinModelQuery = (ref: string | undefined) =>
@@ -115,6 +116,38 @@ export const useTwinStreamsQuery = (ref: string | undefined) =>
     // Readings arrive from outside the app, so poll to keep the twin live.
     refetchInterval: 3000,
   })
+
+export type TwinPollStatus = {
+  isConfigured: boolean
+  label: string
+  source: string
+  intervalSec: number
+  lastPollAt: number | null
+  lastError: string | null
+  lastAccepted: number
+  lastSkipped: number
+  totalAccepted: number
+}
+
+/** State of the server-side poll of an external API (configured with TWIN_POLL_* settings). */
+export const useTwinPollStatusQuery = (ref: string | undefined) =>
+  useQuery({
+    queryKey: twinKeys.poll(ref),
+    queryFn: () => twinFetchJson<TwinPollStatus>(`/${ref}/poll`),
+    enabled: Boolean(ref),
+    refetchInterval: 3000,
+  })
+
+export const usePollTwinNowMutation = (ref: string | undefined) => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: () => twinFetchJson<TwinPollStatus>(`/${ref}/poll`, { method: 'POST' }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: twinKeys.poll(ref) })
+      queryClient.invalidateQueries({ queryKey: twinKeys.streams(ref) })
+    },
+  })
+}
 
 export const useUpdateTwinStreamMutation = (ref: string | undefined) => {
   const queryClient = useQueryClient()

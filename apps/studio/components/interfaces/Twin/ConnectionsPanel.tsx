@@ -1,10 +1,16 @@
 import { useParams } from 'common'
-import { Cable, FileSpreadsheet } from 'lucide-react'
+import dayjs from 'dayjs'
+import { Cable, FileSpreadsheet, RefreshCw } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { Button, copyToClipboard } from 'ui'
 
-import { usePostTwinReadingsMutation, useTwinStreamsQuery } from '@/data/twin/twin-queries'
+import {
+  usePollTwinNowMutation,
+  usePostTwinReadingsMutation,
+  useTwinPollStatusQuery,
+  useTwinStreamsQuery,
+} from '@/data/twin/twin-queries'
 import { BASE_PATH } from '@/lib/constants'
 import { csvToReadings } from '@/lib/twin/streams'
 
@@ -22,6 +28,56 @@ const buildSampleHistory = (now = Date.now()) =>
       value: +(50 + wave * 30 + (Math.random() - 0.5) * 6).toFixed(1),
     }
   })
+
+const LivePollSection = ({ siteRef }: { siteRef: string | undefined }) => {
+  const { data: status } = useTwinPollStatusQuery(siteRef)
+  const pollNow = usePollTwinNowMutation(siteRef)
+  if (!status) return null
+
+  return (
+    <section className="flex flex-col gap-y-2">
+      <h3 className="flex items-center gap-x-2 text-sm">
+        <RefreshCw size={14} /> Live API (polling)
+      </h3>
+      {!status.isConfigured && (
+        <p className="text-xs text-foreground-light">
+          Not set up. Add <code>TWIN_POLL_PRESET=iss</code> (or <code>local-pumps</code>) to{' '}
+          <code>.env.local</code> and restart, or set <code>TWIN_POLL_URL</code> and a mapping file
+          for your own API.
+        </p>
+      )}
+      {status.isConfigured && (
+        <>
+          <p className="text-xs text-foreground-light">
+            {status.label} · <code>{status.source}</code> · every {status.intervalSec} s
+          </p>
+          <div className="rounded-md border bg-surface-100 p-2 text-xs">
+            <p className={status.lastError ? 'text-destructive' : 'text-brand'}>
+              {status.lastError ? `Error: ${status.lastError}` : 'Connected'}
+            </p>
+            <p className="text-foreground-light">
+              {status.lastPollAt
+                ? `Last poll ${dayjs(status.lastPollAt).fromNow()}`
+                : 'Not polled yet'}
+              {` · ${status.lastAccepted} new readings`}
+              {status.lastSkipped > 0 && ` · ${status.lastSkipped} skipped`}
+              {` · ${status.totalAccepted} since start`}
+            </p>
+          </div>
+          <Button
+            size="tiny"
+            variant="default"
+            className="self-start"
+            loading={pollNow.isPending}
+            onClick={() => pollNow.mutate()}
+          >
+            Poll now
+          </Button>
+        </>
+      )}
+    </section>
+  )
+}
 
 export const ConnectionsPanel = () => {
   const { ref } = useParams()
@@ -48,6 +104,8 @@ export const ConnectionsPanel = () => {
 
   return (
     <div className="flex flex-col gap-y-5">
+      <LivePollSection siteRef={ref} />
+
       <section className="flex flex-col gap-y-2">
         <h3 className="flex items-center gap-x-2 text-sm">
           <Cable size={14} /> HTTP webhook
