@@ -10,11 +10,27 @@ caches are not in this repository: point `PUMP_TWIN_DIR` at the folder that hold
 python -m venv .venv && . .venv/bin/activate
 pip install -r requirements.txt            # gmsh needs libglu1-mesa and libxrender1 on Linux
 export PUMP_TWIN_DIR=/path/to/folder/with/the/twin/files
-uvicorn app:app --port 8100
-python smoke_test.py http://127.0.0.1:8100  # waits for the twin, then checks the endpoints
+uvicorn pump_twin_api.main:app --port 8100
+python smoke.py http://127.0.0.1:8100       # waits for the twin, then checks the endpoints against it
+pip install -r requirements-dev.txt && pytest   # fast unit tests, no twin needed
 ```
 
 The twin takes about 100 s to build at start. `GET /health` shows `building`, then `ready`.
+
+## Layout
+
+| Module                  | Role                                                                          |
+| ----------------------- | ----------------------------------------------------------------------------- |
+| `main.py`               | `create_app()`: wires settings, the runtime and the routers                   |
+| `config.py`             | `Settings`, read from the environment                                         |
+| `runtime.py`            | Builds the twin in a background thread; holds readings, caches and the lock   |
+| `demo_feed.py`          | Synthetic readings for the `demo` source                                      |
+| `scenario.py`           | What-if logic (validate, solve, slim the reply). Knows the twin, not HTTP     |
+| `schemas.py`            | Request models                                                                |
+| `deps.py`               | API key check, ready check, pump lookup, JSON response                        |
+| `serialize.py`          | numpy and NaN safe JSON                                                       |
+| `routes/`               | `health`, `meta`, `pumps`, `whatif`                                           |
+| `tests/`                | Unit tests with a fake twin; `smoke.py` checks a running service              |
 
 ## Settings (environment)
 
