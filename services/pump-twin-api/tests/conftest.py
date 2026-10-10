@@ -23,6 +23,13 @@ def _part(name, role, sub=""):
     return SimpleNamespace(name=name, role=role, sub=sub, V=np.array([[0, 0, 0], [1, 0, 0], [0, 1, 0]], float), F=np.array([[0, 1, 2]], np.uint32))
 
 
+def _layers(wear):
+    values = {0: np.array([0.0, 0.2 + 0.6 * wear, 1.0])}
+    return {"cavitation": {"title": "Cavitation risk", "unit": "risk", "about": "Where vapour forms.", "colorscale": [[0, "#1a9850"], [1, "#a50026"]],
+                           "cmin": 0.0, "cmax": 1.0, "values": values, "opacity": {0: 0.5},
+                           "extras": [{"kind": "lines", "name": "stream", "lines": [{"V": np.zeros((2, 3)), "c": np.array([0.0, 1.0])}]}]}}
+
+
 class FakeTwin:
     """Stands in for the real twin so the API can be tested without the 100 s model build."""
 
@@ -41,7 +48,7 @@ class FakeTwin:
         kpi = {"flow_m3h": raw.get("flow", raw.get("flow_rate", 0.0)), "head_m": 125.0, "pump_eff_pct": 87.0 - 10 * wear, "power_kw": 1000.0 + 50 * wear,
                "vib_pump_de": 1.8 + 6 * bearing, "timestamp": "t0", "usable": True}
         return SimpleNamespace(kpi=kpi, health={"impeller": wear, "bearings": bearing, "overall": max(wear, bearing)},
-                               st=SimpleNamespace(pump=1), label=label, faults=faults)
+                               st=SimpleNamespace(pump=1), label=label, faults=faults, layers=_layers(wear))
 
 
 def _whatif_row(twin, raw, over, mode, driver, vfd=False):
@@ -78,6 +85,9 @@ FAKE_P3 = SimpleNamespace(
     whatif_limits=lambda twin: {"head_m": (0, 400)},
     health_of=lambda score: 1.0 - score,
     scenario_payload=_payload,
+    LAYER_ORDER=["velocity", "cavitation"],
+    _cs=lambda scale: scale,
+    _q8=lambda v, lo, hi: np.clip(np.round((np.asarray(v, float) - lo) / (hi - lo) * 254), 0, 254).astype(np.uint8),
 )
 
 

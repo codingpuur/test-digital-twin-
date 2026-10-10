@@ -116,7 +116,12 @@ export type PumpWhatIfResult = {
   ms: number
   notes: string[]
   solved: Record<string, unknown> & { implausible?: boolean }
-  scenario: { insights: Record<string, PumpFinding[]>; charts: Record<string, unknown> }
+  scenario: {
+    insights: Record<string, PumpFinding[]>
+    charts: PumpCharts
+    dots: Record<string, [string, string][]>
+    an: Record<string, unknown>
+  }
   view: PumpWhatIfView
   reading_timestamp: string | null
 }
@@ -154,4 +159,76 @@ export type PumpTelemetryLatest = {
   source: string
   poll_error: string | null
   readings: PumpTelemetryReading[]
+}
+
+export type PumpLayerWhich = 'baseline' | 'scenario'
+
+export type PumpLayerInfo = {
+  key: string
+  title: string
+  unit: string
+  about: string
+  lo: number
+  hi: number
+  /** Colour stops, position 0..1 and a CSS colour. */
+  scale: [number, string][]
+}
+
+export type PumpLayer = PumpLayerInfo & {
+  pump: number
+  which: PumpLayerWhich
+  /** Per part index, one byte per vertex (0 = low end of the scale, 254 = high end), base64. */
+  values: Record<string, string>
+  opacity: Record<string, number>
+  extras: (
+    | { kind: 'mesh'; name: string; vertices: string; faces: string; values: string }
+    | { kind: 'lines'; name: string; lines: { vertices: string; values: string }[] }
+  )[]
+}
+
+type Regions = { por: [number, number]; aor: [number, number]; qmin: number; qmax: number }
+
+/** Chart data of one run. Curves, regions and limits are the backend's; the screen only draws them. */
+export type PumpCharts = {
+  perf: {
+    q: number[]
+    H: number[]
+    eta: number[]
+    sysH: number[]
+    npsh3: number[]
+    npshi: number[]
+    op: [number, number]
+    npsha: number
+    bep: [number, number]
+    bep_eta: number
+    npshr_pts: { q: number[]; v: number[] } | null
+    regions: Regions
+  }
+  power: {
+    q: number[]
+    P: number[]
+    q_head: number | null
+    p_curve: number | null
+    p_shaft: number | null
+    rated: number
+    regions: Regions
+  }
+  campbell: {
+    rpm: number[]
+    modes: number[]
+    run_rpm: number
+    z: number
+    casing: number[]
+    note: string
+  }
+  therm: {
+    nodes: Record<string, number>
+    hot: number
+    alarm: number
+    cls: number
+    model: number | null
+  }
+  loss: Record<string, number>
+  tabs: [string, string, string[]][]
+  hidden: Record<string, string>
 }

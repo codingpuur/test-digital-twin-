@@ -1,8 +1,8 @@
 import { useParams } from 'common'
 import { Boxes } from 'lucide-react'
 import dynamic from 'next/dynamic'
-import { useMemo, useState } from 'react'
-import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from 'ui'
+import { useEffect, useMemo, useState } from 'react'
+import { Badge, ResizableHandle, ResizablePanel, ResizablePanelGroup } from 'ui'
 import { EmptyStatePresentational } from 'ui-patterns/EmptyStatePresentational'
 
 import { BottomDrawer } from '../BottomDrawer'
@@ -11,8 +11,11 @@ import { PanelToggles } from '../PanelToggles'
 import { useCollapsiblePanel } from '../useCollapsiblePanel'
 import { ViewStyleToggle, type ViewStyle } from '../ViewStyleToggle'
 import { WorkspaceStatusBar } from '../WorkspaceStatusBar'
+import { applyLayer, clearLayer } from './pump-layer'
 import { buildRequest, EMPTY_FORM, isChanged, type PumpFormState } from './pump-request'
 import { buildPumpScene, colorsByComponent, PUMP_STATUS_COLORS } from './pump-scene'
+import { MotorCharts, PerformanceCharts, RotorCharts } from './PumpCharts'
+import { PumpLayerPicker } from './PumpLayerPicker'
 import { PumpPanel } from './PumpPanel'
 import { PumpProperties } from './PumpProperties'
 import { PumpResults } from './PumpResults'
@@ -21,6 +24,8 @@ import {
   usePumpBaselineQuery,
   usePumpDefaultsQuery,
   usePumpLatestQuery,
+  usePumpLayerQuery,
+  usePumpLayersQuery,
   usePumpListQuery,
   usePumpMeshQuery,
   usePumpMetaQuery,
@@ -33,12 +38,14 @@ const TwinViewer = dynamic(() => import('../TwinViewer').then((mod) => mod.TwinV
   ssr: false,
 })
 
-type PumpTab = 'whatif' | 'telemetry'
+// The chart tabs (id and name) come from the backend with the charts; the rest are fixed.
+type PumpTab = string
 
-const DRAWER_TABS = [
-  { id: 'whatif', label: 'What-if' },
-  { id: 'telemetry', label: 'Telemetry' },
-]
+const CHART_VIEWS = {
+  hyd: PerformanceCharts,
+  rot: RotorCharts,
+  mot: MotorCharts,
+} as const
 
 const STATUS_LEGEND: { status: PumpStatus; label: string }[] = [
   { status: 'ok', label: 'Healthy' },
@@ -84,11 +91,37 @@ export const PumpWorkspace = () => {
   const result = whatIf.data ?? baselineQuery.data
   const view = result?.view
 
+  // The backend keeps the 3D layers of each pump's last run: the scenario's once one was run.
+  const which = whatIf.data ? 'scenario' : 'baseline'
+  const runId = whatIf.data ? whatIf.submittedAt : baselineQuery.dataUpdatedAt
+  const [layerKey, setLayerKey] = useState<string | null>(null)
+  const layersQuery = usePumpLayersQuery(ref, pump, which, Boolean(result))
+  const layerQuery = usePumpLayerQuery(ref, pump, which, layerKey, runId)
+  const layer = layerKey ? (layerQuery.data ?? null) : null
+
+  useEffect(() => {
+    if (!scene) return
+    if (layer) applyLayer(scene, layer)
+    else clearLayer(scene)
+    return () => clearLayer(scene)
+  }, [scene, layer])
+
   const colorOverrides = useMemo(() => {
+    // Under a layer every part is white, so the layer's own colours show unchanged.
+    if (layerKey) return Object.fromEntries(elements.map((element) => [element.id, '#ffffff']))
     if (!view) return null
     const statusOf = Object.fromEntries(view.components.map((item) => [item.key, item.status]))
     return colorsByComponent(elements, statusOf)
-  }, [view, elements])
+  }, [view, elements, layerKey])
+
+  const chartTabs = result?.scenario.charts.tabs ?? []
+  const drawerTabs = [
+    { id: 'whatif', label: 'What-if' },
+    ...chartTabs.map(([id, label]) => ({ id, label })),
+    { id: 'telemetry', label: 'Telemetry' },
+  ]
+  const ChartView = tab in CHART_VIEWS ? CHART_VIEWS[tab as keyof typeof CHART_VIEWS] : null
+  const attention = result?.scenario.dots[tab] ?? []
 
   const selectedElement = elements.find((element) => element.id === selectedId) ?? null
   const overlayBottom = isDrawerOpen ? drawerHeight + 12 : 12
@@ -97,6 +130,7 @@ export const PumpWorkspace = () => {
     setPumpChoice(next)
     setForm(EMPTY_FORM)
     setSelectedId(null)
+    setLayerKey(null)
     whatIf.reset()
   }
 
@@ -178,7 +212,7 @@ export const PumpWorkspace = () => {
                 <TwinViewer
                   scene={scene}
                   selectedId={selectedId}
-                  isHologram={viewStyle === 'hologram'}
+                  isHologram={viewStyle === 'hologram' && !layerKey}
                   cameraPosition={[2.2, 1.4, 2.6]}
                   colorOverrides={viewStyle === 'model' ? null : colorOverrides}
                   showLabels={false}
@@ -192,8 +226,15 @@ export const PumpWorkspace = () => {
                 style={{ bottom: overlayBottom }}
                 className="absolute left-3 flex flex-col gap-y-2 rounded-md border bg-surface-100/90 px-3 py-2 text-xs"
               >
-                <ViewStyleToggle value={viewStyle} onChange={setViewStyle} />
-                {viewStyle !== 'model' && (
+                <PumpLayerPicker
+                  layers={layersQuery.data ?? []}
+                  activeKey={layerKey}
+                  active={layer}
+                  isLoading={layerQuery.isFetching}
+                  onChange={setLayerKey}
+                />
+                {!layerKey && <ViewStyleToggle value={viewStyle} onChange={setViewStyle} />}
+                {!layerKey && viewStyle !== 'model' && (
                   <div className="flex items-center gap-x-3 text-foreground-light">
                     {STATUS_LEGEND.map((item) => (
                       <span key={item.status} className="flex items-center gap-x-1">
@@ -211,7 +252,7 @@ export const PumpWorkspace = () => {
                 isOpen={isDrawerOpen}
                 height={drawerHeight}
                 onHeightChange={setDrawerHeight}
-                tabs={DRAWER_TABS}
+                tabs={drawerTabs}
                 activeTab={tab}
                 onTabChange={(id) => setTab(id as PumpTab)}
                 onClose={drawer.collapse}
@@ -219,6 +260,22 @@ export const PumpWorkspace = () => {
                 {tab === 'whatif' && result && <PumpResults result={result} />}
                 {tab === 'whatif' && !result && (
                   <p className="p-3 text-sm text-foreground-lighter">Reading the pump…</p>
+                )}
+                {ChartView && result && (
+                  <div className="flex h-full flex-col overflow-y-auto">
+                    {attention.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5 px-3 pt-2">
+                        {attention.map(([level, text]) => (
+                          <Badge key={text} variant={level === 'bad' ? 'destructive' : 'warning'}>
+                            {text}
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
+                    <div className="flex flex-wrap">
+                      <ChartView charts={result.scenario.charts} />
+                    </div>
+                  </div>
                 )}
                 {tab === 'telemetry' && <PumpTelemetry latest={latestQuery.data} />}
               </BottomDrawer>

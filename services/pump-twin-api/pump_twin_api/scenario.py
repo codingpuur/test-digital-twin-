@@ -105,7 +105,11 @@ def run_whatif(rt: Runtime, pump: int, body: WhatIfRequest) -> dict:
 
         cached = rt.baseline.get(pump)
         if cached is None or cached[0] != id(raw):  # the reading changed: recompute the baseline
-            rt.baseline[pump] = cached = (id(raw), slim(rt, pump, twin.process(raw, {})))
+            base_run = twin.process(raw, {})
+            rt.runs[(pump, "baseline")] = base_run
+            rt.baseline[pump] = cached = (id(raw), slim(rt, pump, base_run))
+        # An untouched scenario is the baseline itself; it must not replace the scenario being viewed.
+        rt.runs[(pump, "scenario" if over or faults else "baseline")] = run
         scenario = slim(rt, pump, run)
         baseline = cached[1]
     return {

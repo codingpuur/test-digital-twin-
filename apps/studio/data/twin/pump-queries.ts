@@ -3,6 +3,9 @@ import { toast } from 'sonner'
 
 import { pumpKeys } from './pump-keys'
 import type {
+  PumpLayer,
+  PumpLayerInfo,
+  PumpLayerWhich,
   PumpMesh,
   PumpMeta,
   PumpSummary,
@@ -90,4 +93,38 @@ export const usePumpWhatIfMutation = (ref: string | undefined, pump: number | un
         body: JSON.stringify(payload),
       }),
     onError: (error: Error) => toast.error(error.message),
+  })
+
+/** Which 3D layers the last run has. Wait for a run first: the backend keeps the layers of the last run. */
+export const usePumpLayersQuery = (
+  ref: string | undefined,
+  pump: number | undefined,
+  which: PumpLayerWhich,
+  isEnabled: boolean
+) =>
+  useQuery({
+    queryKey: pumpKeys.layers(ref, pump, which),
+    queryFn: async () =>
+      (
+        await twinFetchJson<{ layers: PumpLayerInfo[] }>(
+          pumpPath(ref!, `pumps/${pump}/layers?which=${which}`)
+        )
+      ).layers,
+    enabled: Boolean(ref) && pump !== undefined && isEnabled,
+  })
+
+export const usePumpLayerQuery = (
+  ref: string | undefined,
+  pump: number | undefined,
+  which: PumpLayerWhich,
+  key: string | null,
+  /** Changes with each run, so a new scenario fetches its own values. */
+  runId: number
+) =>
+  useQuery({
+    queryKey: [...pumpKeys.layer(ref, pump, which, key), runId],
+    queryFn: () =>
+      twinFetchJson<PumpLayer>(pumpPath(ref!, `pumps/${pump}/layers/${key}?which=${which}`)),
+    enabled: Boolean(ref) && pump !== undefined && key !== null,
+    staleTime: Infinity,
   })

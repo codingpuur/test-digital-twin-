@@ -33,6 +33,10 @@ class Runtime:
         self.summary: dict[int, tuple[float, dict]] = {}
         self.baseline: dict[int, tuple[int, dict]] = {}
         self.mesh_json: str | None = None
+        # The last twin run of each pump, kept for its 3-D layers: (pump, "baseline" | "scenario").
+        self.fmea: dict[int, dict] = {}
+        self.fmea_running: set[int] = set()
+        self.runs: dict[tuple[int, str], Any] = {}
         self.built_s = 0.0
         # The twin mutates shared state while processing (e.g. ambient temperature), as its own
         # server does under a lock, so one scenario runs at a time.
