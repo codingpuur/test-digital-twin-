@@ -67,6 +67,7 @@ const Frame = ({
         dataKey={xKey}
         type="number"
         domain={['dataMin', 'dataMax']}
+        tickFormatter={(value: number) => String(Math.round(value))}
         tick={TEXT_TICK}
         unit={` ${xLabel}`}
       />
