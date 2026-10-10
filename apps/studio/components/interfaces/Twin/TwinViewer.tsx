@@ -3,6 +3,7 @@ import { Canvas, type ThreeEvent } from '@react-three/fiber'
 import { useEffect, useMemo, useRef } from 'react'
 import * as THREE from 'three'
 
+import { HologramEffect } from './HologramEffect'
 import type { AnimationBinding } from './simulation/animation.types'
 import { AnimationDriver } from './simulation/AnimationDriver'
 import { LabelOverlay, LabelProjector, resolveLabelTargets } from './simulation/SignalLabels'
@@ -15,6 +16,8 @@ import { AlertBlink, CameraFocus, type FocusRequest } from './ViewerEffects'
 type TwinViewerProps = {
   scene: THREE.Object3D
   selectedId: string | null
+  /** Shows the model as a glowing hologram, with faulty parts in red. */
+  isHologram?: boolean
   /** Where the camera starts; it is then moved back until the whole model fits. */
   cameraPosition?: [number, number, number]
   /** Other parts of the selected element's equipment, glowing dimmer than the selection. */
@@ -34,6 +37,9 @@ type TwinViewerProps = {
   onSelect: (id: string | null) => void
 }
 
+// A deep blue backdrop, so the glow reads in both light and dark themes.
+const HOLOGRAM_BACKDROP = 'bg-[radial-gradient(ellipse_at_50%_40%,#0b2545_0%,#02060f_75%)]'
+
 const DEFAULT_CAMERA_POSITION: [number, number, number] = [14, 10, 14]
 
 // A stable empty list, so the highlight effect does not re-run on every render.
@@ -42,6 +48,7 @@ const NO_GROUP: string[] = []
 export const TwinViewer = ({
   scene,
   selectedId,
+  isHologram = false,
   cameraPosition = DEFAULT_CAMERA_POSITION,
   groupIds = NO_GROUP,
   colorOverrides = null,
@@ -75,7 +82,7 @@ export const TwinViewer = ({
   }
 
   return (
-    <div className="relative h-full w-full">
+    <div className={`relative h-full w-full ${isHologram ? HOLOGRAM_BACKDROP : ''}`}>
       <Canvas
         camera={{ position: cameraPosition, fov: 45 }}
         gl={{ alpha: true, antialias: true }}
@@ -87,8 +94,8 @@ export const TwinViewer = ({
         <Grid
           position={[0, -0.31, 0]}
           args={[40, 40]}
-          cellColor="#6b7280"
-          sectionColor="#9ca3af"
+          cellColor={isHologram ? '#0e7490' : '#6b7280'}
+          sectionColor={isHologram ? '#22d3ee' : '#9ca3af'}
           fadeDistance={45}
           infiniteGrid
         />
@@ -97,6 +104,14 @@ export const TwinViewer = ({
           <CameraFocus scene={scene} request={focusRequest} />
         </Bounds>
         {onViewerReady && <ViewerBridge onReady={onViewerReady} />}
+        <HologramEffect
+          scene={scene}
+          isActive={isHologram}
+          selectedId={selectedId}
+          groupIds={groupIds}
+          colorOverrides={colorOverrides}
+          alertIds={alertIds}
+        />
         <AlertBlink
           scene={scene}
           ids={alertIds}

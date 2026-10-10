@@ -3,11 +3,12 @@ import dynamic from 'next/dynamic'
 import { parseAsString, useQueryState } from 'nuqs'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type * as THREE from 'three'
-import { ResizableHandle, ResizablePanel, ResizablePanelGroup, Switch } from 'ui'
+import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from 'ui'
 
 import { applyAssets } from './asset-bridge'
 import { BottomDrawer } from './BottomDrawer'
 import { buildDemoStation } from './demo-station'
+import { HOLOGRAM_COLORS } from './hologram'
 import { ImportDiffModal } from './ImportDiffModal'
 import { InventoryTable } from './InventoryTable'
 import { collectElements, loadModelFile } from './model-loaders'
@@ -32,6 +33,7 @@ import type { ViewerApi } from './ViewerBridge'
 import { useViews } from './views/useViews'
 import type { TwinView, ViewSnapshot } from './views/views.types'
 import { ViewsPanel } from './views/ViewsPanel'
+import { ViewStyleToggle, type ViewStyle } from './ViewStyleToggle'
 import { useVoiceCommands } from './voice/useVoiceCommands'
 import { VoiceAgent } from './voice/VoiceAgent'
 import { WorkspaceStatusBar } from './WorkspaceStatusBar'
@@ -106,7 +108,10 @@ export const SiteWorkspace = () => {
   // Folded to a faint pill over the 3D view by default; the pill's expand button opens the full bar.
   const [isTimelineOpen, setIsTimelineOpen] = useState(false)
   const simulation = useSimulation()
-  const [colorByStatus, setColorByStatus] = useState(true)
+  // How the 3D model is drawn: its own colours, status colours, or a glowing hologram.
+  const [viewStyle, setViewStyle] = useState<ViewStyle>('status')
+  const colorByStatus = viewStyle === 'status'
+  const isHologram = viewStyle === 'hologram'
   const [storedBindings, setStoredBindings] = useLocalStorage<AnimationBinding[]>(
     `twin-bindings-${ref ?? 'site'}`,
     getDefaultBindings()
@@ -162,14 +167,16 @@ export const SiteWorkspace = () => {
     () => groupStreamsByTag(streamsQuery.data?.streams ?? []),
     [streamsQuery.data]
   )
-  const colorsNow = colorByStatus
-    ? applyStreamColors(
-        isDemoModel ? getStatusColors(elements, signals) : getUnlinkedColors(elements),
-        elements,
-        streamsByTag,
-        replayAt
-      )
-    : null
+  // The hologram tints each part by the same status, so it needs the colours too.
+  const colorsNow =
+    colorByStatus || isHologram
+      ? applyStreamColors(
+          isDemoModel ? getStatusColors(elements, signals) : getUnlinkedColors(elements),
+          elements,
+          streamsByTag,
+          replayAt
+        )
+      : null
   // Colours only change when a reading crosses a threshold: key on the result so the viewer is not
   // re-tinted on every throttled simulation update.
   const colorKey = JSON.stringify(colorsNow)
@@ -210,7 +217,7 @@ export const SiteWorkspace = () => {
     viewerApi?.applyCamera(view.camera)
     setHiddenCategories(new Set(view.hiddenCategories))
     setSelectedId(view.selectedId)
-    setColorByStatus(view.isColorByStatus)
+    setViewStyle(view.isColorByStatus ? 'status' : 'model')
     setActiveViewId(view.id)
   }
 
@@ -434,6 +441,7 @@ export const SiteWorkspace = () => {
                   scene={scene}
                   selectedId={selectedId}
                   groupIds={groupIds}
+                  isHologram={isHologram}
                   cameraPosition={isDemoModel ? DEMO_CAMERA_POSITION : undefined}
                   colorOverrides={voice.scoreColors ?? statusColors}
                   alertIds={voice.alertIds}
@@ -448,17 +456,24 @@ export const SiteWorkspace = () => {
                   style={{ bottom: overlayBottom }}
                   className="absolute left-3 flex flex-col gap-y-2 rounded-md border bg-surface-100/90 px-3 py-2 text-xs"
                 >
-                  <label className="flex items-center gap-x-2">
-                    <Switch checked={colorByStatus} onCheckedChange={setColorByStatus} />
-                    Colour by status
-                  </label>
-                  {colorByStatus && (
+                  <ViewStyleToggle value={viewStyle} onChange={setViewStyle} />
+                  {viewStyle !== 'model' && (
                     <div className="flex items-center gap-x-3 text-foreground-light">
                       {(['Normal', 'Warning', 'Unlinked'] as const).map((status) => (
                         <span key={status} className="flex items-center gap-x-1">
                           <span
                             className="inline-block size-2 rounded-full"
-                            style={{ background: STATUS_COLORS[status] }}
+                            style={{
+                              background: isHologram
+                                ? HOLOGRAM_COLORS[
+                                    status === 'Normal'
+                                      ? 'normal'
+                                      : status === 'Warning'
+                                        ? 'warning'
+                                        : 'unlinked'
+                                  ]
+                                : STATUS_COLORS[status],
+                            }}
                           />
                           {status}
                         </span>
